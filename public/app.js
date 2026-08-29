@@ -1,4 +1,3 @@
-// Cloudflare deployment connectivity check: 2026-08-29
 const header = document.querySelector('[data-header]');
 const menuToggle = document.querySelector('[data-menu-toggle]');
 const nav = document.querySelector('[data-nav]');
@@ -50,11 +49,11 @@ if (location.pathname === '/' || location.pathname.endsWith('/index.html')) {
   const resourceLinks = document.querySelectorAll('.resource-list a');
   const resourceRoutes = [
     '/citizenship.html',
+    '/citizenship.html',
     '/resources.html',
     '/resources.html',
     '/resources.html',
-    '/resources.html',
-    '/resources.html'
+    '/community.html'
   ];
   resourceLinks.forEach((link, index) => {
     if (resourceRoutes[index]) link.setAttribute('href', resourceRoutes[index]);
@@ -66,7 +65,6 @@ if (location.pathname === '/' || location.pathname.endsWith('/index.html')) {
     resourceLibraryLink.innerHTML = 'Explore the resource center <span>→</span>';
   }
 
-  // Make the expanded site immediately visible instead of hiding it behind navigation changes.
   const hero = document.querySelector('.hero');
   if (hero && !document.querySelector('[data-site-expansion]')) {
     const expansion = document.createElement('section');
@@ -75,45 +73,67 @@ if (location.pathname === '/' || location.pathname.endsWith('/index.html')) {
     expansion.innerHTML = `
       <div class="container">
         <div class="section-intro reveal">
-          <p class="eyebrow dark">Now live</p>
-          <h2>Explore the expanded Russian Adoptees Organization.</h2>
-          <p>The website now includes dedicated citizenship and passport guidance, a resource center, public governance material, community information, and an official document archive.</p>
+          <p class="eyebrow dark">Current resources · Reviewed August 29, 2026</p>
+          <h2>Answers built specifically for Russian adoptees.</h2>
+          <p>RAO now combines adoptee experience with official-source research: current Russian citizenship law, consular procedures, documentation guidance, community infrastructure, and a public organizational archive.</p>
         </div>
         <div class="card-grid four-up">
           <a class="feature-card reveal" href="/citizenship.html">
             <div class="icon-box" aria-hidden="true">RU</div>
             <h3>Citizenship & Passports</h3>
-            <p>Start here for citizenship-status questions, consular processes, documentation, and adoptee-specific guidance.</p>
+            <p>Were you adopted from Russia? Start here to understand why you may still hold Russian citizenship and how official verification works.</p>
+          </a>
+          <a class="feature-card reveal" href="/law-updates.html">
+            <div class="icon-box" aria-hidden="true">§</div>
+            <h3>Russian Law Updates</h3>
+            <p>Current Russian citizenship and consular changes translated into plain English, with dates and links to the official government source.</p>
           </a>
           <a class="feature-card reveal" href="/resources.html">
             <div class="icon-box" aria-hidden="true">⌘</div>
             <h3>Resource Center</h3>
-            <p>Find practical starting points for records, consular assistance, heritage, travel, and other adoptee needs.</p>
+            <p>Records, documentation, consular assistance, biological-family search, heritage, travel, and practical adoptee starting points.</p>
           </a>
-          <a class="feature-card reveal" href="/policies.html">
-            <div class="icon-box" aria-hidden="true">§</div>
-            <h3>Policies & Governance</h3>
-            <p>Read how RAO approaches advocacy, community support, consular relations, transparency, and organizational standards.</p>
-          </a>
-          <a class="feature-card reveal" href="/documents.html">
-            <div class="icon-box" aria-hidden="true">▤</div>
-            <h3>Document Archive</h3>
-            <p>Browse public memoranda, organizational policies, and other official RAO material in a web-readable archive.</p>
+          <a class="feature-card reveal" href="/community.html">
+            <div class="icon-box" aria-hidden="true">◎</div>
+            <h3>Russian Adoptee Community</h3>
+            <p>Connect through the established adoptee-only Facebook community, RAO Discord infrastructure, regional groups, and meetups.</p>
           </a>
         </div>
       </div>`;
     hero.insertAdjacentElement('afterend', expansion);
   }
+
+  // Organization structured data for search engines.
+  if (!document.querySelector('script[data-rao-schema]')) {
+    const schema = document.createElement('script');
+    schema.type = 'application/ld+json';
+    schema.setAttribute('data-rao-schema', '');
+    schema.textContent = JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'Organization',
+      name: 'Russian Adoptees Organization',
+      url: 'https://russianadoptees.com/',
+      description: 'An adoptee-led organization connecting and supporting people adopted from Russia and former-Soviet countries through community, practical resources, heritage, education, and advocacy.',
+      sameAs: ['https://www.facebook.com/groups/russianadoptees']
+    });
+    document.head.appendChild(schema);
+  }
 }
 
-// Keep the public document archive one click away from every page.
+// Keep high-value public sections one click away from every page.
 document.querySelectorAll('.footer-links').forEach((footerLinks) => {
-  if (!footerLinks.querySelector('a[href="/documents.html"]')) {
-    const documentsLink = document.createElement('a');
-    documentsLink.href = '/documents.html';
-    documentsLink.textContent = 'Documents';
-    footerLinks.appendChild(documentsLink);
-  }
+  const additions = [
+    ['/law-updates.html', 'Law Updates'],
+    ['/documents.html', 'Documents']
+  ];
+  additions.forEach(([href, label]) => {
+    if (!footerLinks.querySelector(`a[href="${href}"]`)) {
+      const link = document.createElement('a');
+      link.href = href;
+      link.textContent = label;
+      footerLinks.appendChild(link);
+    }
+  });
 });
 
 const revealItems = document.querySelectorAll('.reveal');
