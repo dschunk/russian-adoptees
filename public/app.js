@@ -33,7 +33,7 @@ if (menuToggle && nav) {
 
 if (year) year.textContent = new Date().getFullYear();
 
-// Keep Administration and Contact visible in the primary navigation everywhere.
+// Keep the institutional sections visible in the primary navigation everywhere.
 document.querySelectorAll('.site-nav').forEach((siteNav) => {
   const cta = siteNav.querySelector('.nav-cta');
   const ensureNavLink = (href, label) => {
@@ -45,6 +45,7 @@ document.querySelectorAll('.site-nav').forEach((siteNav) => {
     else siteNav.appendChild(link);
   };
   ensureNavLink('/administration.html', 'Administration');
+  ensureNavLink('/press.html', 'Press');
   ensureNavLink('/contact.html', 'Contact');
 });
 
@@ -140,6 +141,7 @@ if (location.pathname === '/' || location.pathname.endsWith('/index.html')) {
 document.querySelectorAll('.footer-links').forEach((footerLinks) => {
   const additions = [
     ['/administration.html', 'Administration'],
+    ['/press.html', 'Press'],
     ['/law-updates.html', 'Law Updates'],
     ['/documents.html', 'Documents'],
     ['/contact.html', 'Contact']

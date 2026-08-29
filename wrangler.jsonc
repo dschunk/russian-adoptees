@@ -1,8 +1,21 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "russian-adoptees",
-  "compatibility_date": "2026-08-28",
+  "main": "./worker/index.js",
+  "compatibility_date": "2026-08-29",
   "assets": {
-    "directory": "./public/"
-  }
+    "directory": "./public/",
+    "binding": "ASSETS",
+    "run_worker_first": [
+      "/api/*"
+    ]
+  },
+  "send_email": [
+    {
+      "name": "EMAIL",
+      "allowed_sender_addresses": [
+        "contact@russianadoptees.com"
+      ]
+    }
+  ]
 }

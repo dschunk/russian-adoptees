@@ -34,18 +34,19 @@
       <div class="contact-form-panel">
         <div class="official-heading"><span>SEND AN INQUIRY</span><div></div></div>
         <h2>How can we help?</h2>
-        <p class="form-intro">Use the form below to prepare an email to <strong>contact@russianadoptees.com</strong>. Please do not include Social Security numbers, financial information, passwords, full passport numbers, or other highly sensitive personal information.</p>
-        <form class="official-form" id="contact-form">
+        <p class="form-intro">Use the secure website form below or email <strong>contact@russianadoptees.com</strong> directly. Please do not include Social Security numbers, financial information, passwords, full passport numbers, or other highly sensitive personal information.</p>
+        <form class="official-form" id="contact-form" novalidate>
           <div class="form-grid">
-            <label><span>Name</span><input type="text" name="name" autocomplete="name" required></label>
-            <label><span>Email</span><input type="email" name="email" autocomplete="email" required></label>
+            <label><span>Name</span><input type="text" name="name" autocomplete="name" minlength="2" maxlength="100" required></label>
+            <label><span>Email</span><input type="email" name="email" autocomplete="email" maxlength="254" required></label>
           </div>
           <label><span>Inquiry type</span><select name="topic" required><option value="">Select a topic</option><option>Citizenship or passport question</option><option>Russian records or documents</option><option>Community or membership</option><option>Volunteer interest</option><option>Media inquiry</option><option>Partnership or institutional inquiry</option><option>Website or resource correction</option><option>Other</option></select></label>
-          <label><span>Subject</span><input type="text" name="subject" required maxlength="120"></label>
-          <label><span>Message</span><textarea name="message" rows="9" required maxlength="5000" placeholder="Tell us what you need help with. Please avoid sending highly sensitive identification information through this form."></textarea></label>
+          <label><span>Subject</span><input type="text" name="subject" minlength="3" maxlength="120" required></label>
+          <label><span>Message</span><textarea name="message" rows="9" minlength="20" maxlength="5000" required placeholder="Tell us what you need help with. Please avoid sending highly sensitive identification information through this form."></textarea></label>
+          <label class="form-trap" aria-hidden="true"><span>Website</span><input type="text" name="website" tabindex="-1" autocomplete="off"></label>
           <label class="form-check"><input type="checkbox" name="privacy" required><span>I understand that I should not send highly sensitive personal or financial information through this form.</span></label>
-          <button class="button button-primary" type="submit">Prepare Email</button>
-          <p class="form-status" id="form-status" aria-live="polite">Messages are routed through RAO's official @russianadoptees.com email addresses.</p>
+          <button class="button button-primary" type="submit">Submit Inquiry</button>
+          <p class="form-status" id="form-status" aria-live="polite">Inquiries are delivered through RAO's official email system.</p>
         </form>
       </div>
 
