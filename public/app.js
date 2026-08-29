@@ -1,5 +1,5 @@
 // Official RAO visual identity assets.
-const RAO_BRAND_VERSION = '20260829-4';
+const RAO_BRAND_VERSION = '20260829-6';
 const RAO_SEAL_URL = `/assets/rao-seal.svg?v=${RAO_BRAND_VERSION}`;
 const RAO_FAVICON_URL = `/assets/rao-favicon.svg?v=${RAO_BRAND_VERSION}`;
 
