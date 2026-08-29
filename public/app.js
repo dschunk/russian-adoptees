@@ -33,12 +33,28 @@ if (menuToggle && nav) {
 
 if (year) year.textContent = new Date().getFullYear();
 
+// Keep Administration and Contact visible in the primary navigation everywhere.
+document.querySelectorAll('.site-nav').forEach((siteNav) => {
+  const cta = siteNav.querySelector('.nav-cta');
+  const ensureNavLink = (href, label) => {
+    if (siteNav.querySelector(`a[href="${href}"]`)) return;
+    const link = document.createElement('a');
+    link.href = href;
+    link.textContent = label;
+    if (cta) siteNav.insertBefore(link, cta);
+    else siteNav.appendChild(link);
+  };
+  ensureNavLink('/administration.html', 'Administration');
+  ensureNavLink('/contact.html', 'Contact');
+});
+
 // Turn the original one-page homepage into the front door for the full RAO site.
 if (location.pathname === '/' || location.pathname.endsWith('/index.html')) {
   const routeMap = {
     '#resources': '/resources.html',
     '#community': '/community.html',
-    '#about': '/about.html'
+    '#about': '/about.html',
+    '#contact': '/contact.html'
   };
 
   document.querySelectorAll('a[href]').forEach((link) => {
@@ -123,8 +139,10 @@ if (location.pathname === '/' || location.pathname.endsWith('/index.html')) {
 // Keep high-value public sections one click away from every page.
 document.querySelectorAll('.footer-links').forEach((footerLinks) => {
   const additions = [
+    ['/administration.html', 'Administration'],
     ['/law-updates.html', 'Law Updates'],
-    ['/documents.html', 'Documents']
+    ['/documents.html', 'Documents'],
+    ['/contact.html', 'Contact']
   ];
   additions.forEach(([href, label]) => {
     if (!footerLinks.querySelector(`a[href="${href}"]`)) {
