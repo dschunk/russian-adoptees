@@ -1,19 +1,58 @@
 // Official RAO visual identity assets.
+const RAO_BRAND_VERSION = '20260829-3';
+const RAO_SEAL_URL = `/assets/rao-seal.webp?v=${RAO_BRAND_VERSION}`;
+const RAO_FAVICON_URL = `/assets/rao-favicon.webp?v=${RAO_BRAND_VERSION}`;
+
+// Load the supplemental branding stylesheet, but do not rely on it to render the seal.
 if (!document.querySelector('link[data-rao-branding]')) {
   const branding = document.createElement('link');
   branding.rel = 'stylesheet';
-  branding.href = '/branding.css';
+  branding.href = `/branding.css?v=${RAO_BRAND_VERSION}`;
   branding.setAttribute('data-rao-branding', '');
   document.head.appendChild(branding);
 }
 
-if (!document.querySelector('link[rel="icon"]')) {
-  const favicon = document.createElement('link');
-  favicon.rel = 'icon';
-  favicon.type = 'image/webp';
-  favicon.href = '/assets/rao-favicon.webp';
-  document.head.appendChild(favicon);
-}
+// Force the favicon to the official simplified RAO crest.
+document.querySelectorAll('link[rel~="icon"]').forEach((link) => link.remove());
+const favicon = document.createElement('link');
+favicon.rel = 'icon';
+favicon.type = 'image/webp';
+favicon.href = RAO_FAVICON_URL;
+document.head.appendChild(favicon);
+
+// Render the official seal as a real image in every existing RAO brand mark.
+const installSeal = (element, className = 'rao-brand-image') => {
+  if (!element || element.querySelector(`.${className}`)) return;
+  element.textContent = '';
+  element.style.background = 'transparent';
+  element.style.border = '0';
+  element.style.boxShadow = 'none';
+  element.style.overflow = 'visible';
+
+  const image = document.createElement('img');
+  image.className = className;
+  image.src = RAO_SEAL_URL;
+  image.alt = 'Russian Adoptees Organization seal';
+  image.decoding = 'async';
+  image.style.width = '100%';
+  image.style.height = '100%';
+  image.style.objectFit = 'contain';
+  image.style.display = 'block';
+  image.style.filter = 'drop-shadow(0 4px 10px rgba(0,0,0,.18))';
+  image.addEventListener('error', () => {
+    element.textContent = 'RAO';
+    element.style.background = '#0b1f33';
+    element.style.color = '#fff';
+    element.style.display = 'grid';
+    element.style.placeItems = 'center';
+    element.style.fontWeight = '800';
+    element.style.fontSize = '11px';
+  }, { once: true });
+  element.appendChild(image);
+};
+
+document.querySelectorAll('.brand-mark').forEach((mark) => installSeal(mark));
+document.querySelectorAll('.admin-seal').forEach((mark) => installSeal(mark, 'rao-admin-seal-image'));
 
 const header = document.querySelector('[data-header]');
 const menuToggle = document.querySelector('[data-menu-toggle]');
@@ -104,10 +143,15 @@ if (location.pathname === '/' || location.pathname.endsWith('/index.html')) {
   if (heroCard && !heroCard.querySelector('.hero-card-seal')) {
     const seal = document.createElement('img');
     seal.className = 'hero-card-seal';
-    seal.src = '/assets/rao-seal.webp';
+    seal.src = RAO_SEAL_URL;
     seal.alt = 'Russian Adoptees Organization official seal';
     seal.width = 118;
     seal.height = 118;
+    seal.style.width = '118px';
+    seal.style.height = '118px';
+    seal.style.objectFit = 'contain';
+    seal.style.marginBottom = '24px';
+    seal.style.filter = 'drop-shadow(0 16px 24px rgba(0,0,0,.24))';
     heroCard.prepend(seal);
   }
 
