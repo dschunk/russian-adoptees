@@ -1,3 +1,4 @@
+// Cloudflare deployment connectivity check: 2026-08-29
 const header = document.querySelector('[data-header]');
 const menuToggle = document.querySelector('[data-menu-toggle]');
 const nav = document.querySelector('[data-nav]');
