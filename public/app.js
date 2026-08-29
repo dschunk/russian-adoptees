@@ -66,6 +66,16 @@ if (location.pathname === '/' || location.pathname.endsWith('/index.html')) {
   }
 }
 
+// Keep the public document archive one click away from every page.
+document.querySelectorAll('.footer-links').forEach((footerLinks) => {
+  if (!footerLinks.querySelector('a[href="/documents.html"]')) {
+    const documentsLink = document.createElement('a');
+    documentsLink.href = '/documents.html';
+    documentsLink.textContent = 'Documents';
+    footerLinks.appendChild(documentsLink);
+  }
+});
+
 const revealItems = document.querySelectorAll('.reveal');
 if ('IntersectionObserver' in window && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
   const observer = new IntersectionObserver((entries) => {
