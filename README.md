@@ -15,7 +15,6 @@ The Russian Adoptees Organization connects and supports adoptees from Russia and
 
 - Static HTML, CSS, and JavaScript
 - Cloudflare Workers + Static Assets
-- Cloudflare Email Service for website inquiries
 - GitHub source control
 - Automatic Cloudflare deployments from `main`
 
@@ -23,36 +22,41 @@ The Russian Adoptees Organization connects and supports adoptees from Russia and
 
 - `/` — Homepage
 - `/about.html` — Mission, principles, and organization overview
-- `/administration.html` — Executive leadership, offices, governance, and public accountability
-- `/contact.html` — Official contact directory and website inquiry form
-- `/press.html` — Official Press Office and media resources
+- `/administration.html` — Executive leadership and organizational structure
+- `/press.html` — Press Office, media contact, and organization facts
+- `/contact.html` — Official inquiry form
 - `/resources.html` — Adoptee resource center
 - `/citizenship.html` — Russian citizenship, passport, and consular starting guide
-- `/law-updates.html` — Russian law and consular changes translated into plain English
+- `/law-updates.html` — Official-source Russian law and consular change monitor
 - `/policies.html` — Governance and policy summaries
 - `/documents.html` — Web-native public document archive
-- `/community.html` — Community infrastructure and official platforms
+- `/community.html` — Discord and community infrastructure
 - `/news.html` — Organization news and milestone timeline
 - `/sitemap.xml` — Search-engine sitemap
 - `/robots.txt` — Crawl policy
 
 ## Contact API
 
-The website remains predominantly static. Requests matching `/api/*` run through `worker/index.js`; all other pages continue to use Cloudflare Static Assets.
+`POST /api/contact` is handled by `worker/index.js`. Static pages continue to be served directly from `public/`; only `/api/*` routes execute Worker logic.
 
-- `GET /api/health` — confirms the Worker/API layer is active and reports whether required bindings are present.
-- `POST /api/contact` — validates public contact-form submissions and sends them through the Cloudflare Email Service `EMAIL` binding.
+The contact API:
 
-The Worker expects a secret named `CONTACT_DESTINATION`. This value is the verified private destination inbox for website inquiries and must be configured in Cloudflare, not committed to this repository.
+- validates all submitted fields server-side;
+- checks same-origin requests when an Origin header is present;
+- enforces request and field-length limits;
+- uses a honeypot and minimum-submission-time check for basic bot filtering;
+- sends through Cloudflare Email Service using the `EMAIL` send binding;
+- uses `contact@russianadoptees.com` as the public sender;
+- uses the visitor's email as Reply-To;
+- reads the private delivery mailbox from the `CONTACT_DESTINATION` Cloudflare secret.
 
-Cloudflare configuration requirements:
+`GET /api/health` reports whether the Worker sees the Email binding and private contact destination without exposing either value.
 
-1. Onboard `russianadoptees.com` under Email Service > Email Sending.
-2. Keep the `EMAIL` send binding configured for the Worker.
-3. Add a Worker secret named `CONTACT_DESTINATION` containing the verified private destination address.
-4. Public sender: `contact@russianadoptees.com`.
+The private destination address must never be committed to this repository. Configure it in Cloudflare as a secret named `CONTACT_DESTINATION`.
 
-The public form includes server-side validation, same-origin checks, size limits, a honeypot field, minimum completion-time filtering, and graceful direct-email fallback messaging.
+## Official branding
+
+The site-wide identity uses the official RAO navy-and-gold seal in `public/assets/rao-seal.webp` and the simplified crest favicon in `public/assets/rao-favicon.webp`. Branding overrides are centralized in `public/branding.css` and loaded site-wide through `public/app.js`.
 
 ## Content standards
 
@@ -71,8 +75,6 @@ npm install
 npm run dev
 ```
 
-For local contact-API development, place development-only values in `.dev.vars` or `.env`; these files are already excluded from source control.
-
 ## Deploy
 
 ```bash
@@ -81,4 +83,4 @@ npm run deploy
 
 ## Repository safety
 
-Do not commit API keys, passwords, private member data, email credentials, forwarding destinations, Cloudflare tokens, private correspondence, applicant data, or other secrets. Store secrets in Cloudflare's protected environment/secrets system instead.
+Do not commit API keys, passwords, private member data, private forwarding addresses, email credentials, Cloudflare tokens, private correspondence, applicant data, or other secrets. Store secrets in Cloudflare's protected environment/secrets system instead.
