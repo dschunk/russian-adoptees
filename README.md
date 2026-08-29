@@ -35,6 +35,16 @@ The Russian Adoptees Organization connects and supports adoptees from Russia and
 - `/sitemap.xml` — Search-engine sitemap
 - `/robots.txt` — Crawl policy
 
+## Current public channels
+
+- General inquiries: `contact@russianadoptees.com`
+- Information: `info@russianadoptees.com`
+- Press and media: `press@russianadoptees.com`
+- Official Discord: https://discord.gg/XqxWJHAnCY
+- Adoptee Facebook community: https://www.facebook.com/groups/russianadoptees
+
+The public contact directory intentionally uses role-based organization addresses rather than publishing a personal officer address.
+
 ## Contact API
 
 `POST /api/contact` is handled by `worker/index.js`. Static pages continue to be served directly from `public/`; only `/api/*` routes execute Worker logic.
@@ -56,7 +66,7 @@ The private destination address must never be committed to this repository. Conf
 
 ## Official branding
 
-The site-wide identity uses the official RAO navy-and-gold seal in `public/assets/rao-seal.webp` and the simplified crest favicon in `public/assets/rao-favicon.webp`. Branding overrides are centralized in `public/branding.css` and loaded site-wide through `public/app.js`.
+The site-wide identity uses the official RAO navy-and-gold seal in `public/assets/rao-seal.webp` and the simplified crest favicon in `public/assets/rao-favicon.webp`. Branding overrides are centralized in `public/branding.css`, explicitly referenced by every public page, and reinforced by `public/app.js`. Versioned asset URLs prevent stale Cloudflare or browser caches from hiding a newly deployed seal.
 
 ## Content standards
 
