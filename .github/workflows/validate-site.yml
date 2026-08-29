@@ -1,0 +1,83 @@
+name: Validate RAO site
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Check JavaScript syntax
+        run: |
+          node --check public/app.js
+          node --check public/contact.js
+          node --check worker/index.js
+
+      - name: Validate public pages and internal links
+        shell: python
+        run: |
+          from html.parser import HTMLParser
+          from pathlib import Path
+          from urllib.parse import urlsplit
+
+          public = Path("public")
+          pages = sorted(public.glob("*.html"))
+          failures = []
+
+          class Links(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.urls = []
+
+              def handle_starttag(self, tag, attrs):
+                  values = dict(attrs)
+                  key = "href" if tag in {"a", "link"} else "src" if tag in {"img", "script"} else None
+                  if key and values.get(key):
+                      self.urls.append(values[key])
+
+          for page in pages:
+              source = page.read_text(encoding="utf-8")
+              if "rao-favicon.svg" not in source:
+                  failures.append(f"{page}: missing official favicon")
+              if "branding.css" not in source:
+                  failures.append(f"{page}: missing official branding stylesheet")
+
+              parser = Links()
+              parser.feed(source)
+              for raw_url in parser.urls:
+                  if raw_url.startswith(("http://", "https://", "mailto:", "tel:", "#", "data:")):
+                      continue
+                  path = urlsplit(raw_url).path
+                  if not path or path.startswith("/api/"):
+                      continue
+                  candidate = public / path.lstrip("/")
+                  if path.endswith("/"):
+                      candidate = candidate / "index.html"
+                  elif not candidate.suffix:
+                      html_candidate = candidate.with_suffix(".html")
+                      if html_candidate.exists():
+                          candidate = html_candidate
+                  if not candidate.exists():
+                      failures.append(f"{page}: unresolved local reference {raw_url}")
+
+          if failures:
+              raise SystemExit("\n".join(failures))
+
+          print(f"Validated {len(pages)} HTML pages and their local references.")
+
+      - name: Validate Cloudflare Worker build
+        run: npx wrangler deploy --dry-run --outdir=.wrangler-build
