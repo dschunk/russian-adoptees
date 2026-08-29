@@ -113,7 +113,7 @@ if (location.pathname === '/' || location.pathname.endsWith('/index.html')) {
           <a class="feature-card reveal" href="/community.html">
             <div class="icon-box" aria-hidden="true">◎</div>
             <h3>Russian Adoptee Community</h3>
-            <p>Connect through the established adoptee-only Facebook community, RAO Discord infrastructure, regional groups, and meetups.</p>
+            <p>Connect through the established adoptee-only Facebook community, the official RAO Discord, regional groups, and meetups.</p>
           </a>
         </div>
       </div>`;
@@ -131,7 +131,10 @@ if (location.pathname === '/' || location.pathname.endsWith('/index.html')) {
       name: 'Russian Adoptees Organization',
       url: 'https://russianadoptees.com/',
       description: 'An adoptee-led organization connecting and supporting people adopted from Russia and former-Soviet countries through community, practical resources, heritage, education, and advocacy.',
-      sameAs: ['https://www.facebook.com/groups/russianadoptees']
+      sameAs: [
+        'https://www.facebook.com/groups/russianadoptees',
+        'https://discord.gg/XqxWJHAnCY'
+      ]
     });
     document.head.appendChild(schema);
   }
@@ -144,6 +147,8 @@ document.querySelectorAll('.footer-links').forEach((footerLinks) => {
     ['/press.html', 'Press'],
     ['/law-updates.html', 'Law Updates'],
     ['/documents.html', 'Documents'],
+    ['/community.html', 'Community'],
+    ['https://discord.gg/XqxWJHAnCY', 'Discord'],
     ['/contact.html', 'Contact']
   ];
   additions.forEach(([href, label]) => {
@@ -151,6 +156,10 @@ document.querySelectorAll('.footer-links').forEach((footerLinks) => {
       const link = document.createElement('a');
       link.href = href;
       link.textContent = label;
+      if (href.startsWith('http')) {
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+      }
       footerLinks.appendChild(link);
     }
   });
