@@ -64,6 +64,45 @@ if (location.pathname === '/' || location.pathname.endsWith('/index.html')) {
     resourceLibraryLink.setAttribute('href', '/resources.html');
     resourceLibraryLink.innerHTML = 'Explore the resource center <span>→</span>';
   }
+
+  // Make the expanded site immediately visible instead of hiding it behind navigation changes.
+  const hero = document.querySelector('.hero');
+  if (hero && !document.querySelector('[data-site-expansion]')) {
+    const expansion = document.createElement('section');
+    expansion.className = 'section section-soft';
+    expansion.setAttribute('data-site-expansion', '');
+    expansion.innerHTML = `
+      <div class="container">
+        <div class="section-intro reveal">
+          <p class="eyebrow dark">Now live</p>
+          <h2>Explore the expanded Russian Adoptees Organization.</h2>
+          <p>The website now includes dedicated citizenship and passport guidance, a resource center, public governance material, community information, and an official document archive.</p>
+        </div>
+        <div class="card-grid four-up">
+          <a class="feature-card reveal" href="/citizenship.html">
+            <div class="icon-box" aria-hidden="true">RU</div>
+            <h3>Citizenship & Passports</h3>
+            <p>Start here for citizenship-status questions, consular processes, documentation, and adoptee-specific guidance.</p>
+          </a>
+          <a class="feature-card reveal" href="/resources.html">
+            <div class="icon-box" aria-hidden="true">⌘</div>
+            <h3>Resource Center</h3>
+            <p>Find practical starting points for records, consular assistance, heritage, travel, and other adoptee needs.</p>
+          </a>
+          <a class="feature-card reveal" href="/policies.html">
+            <div class="icon-box" aria-hidden="true">§</div>
+            <h3>Policies & Governance</h3>
+            <p>Read how RAO approaches advocacy, community support, consular relations, transparency, and organizational standards.</p>
+          </a>
+          <a class="feature-card reveal" href="/documents.html">
+            <div class="icon-box" aria-hidden="true">▤</div>
+            <h3>Document Archive</h3>
+            <p>Browse public memoranda, organizational policies, and other official RAO material in a web-readable archive.</p>
+          </a>
+        </div>
+      </div>`;
+    hero.insertAdjacentElement('afterend', expansion);
+  }
 }
 
 // Keep the public document archive one click away from every page.
