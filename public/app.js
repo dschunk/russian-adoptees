@@ -1,3 +1,20 @@
+// Official RAO visual identity assets.
+if (!document.querySelector('link[data-rao-branding]')) {
+  const branding = document.createElement('link');
+  branding.rel = 'stylesheet';
+  branding.href = '/branding.css';
+  branding.setAttribute('data-rao-branding', '');
+  document.head.appendChild(branding);
+}
+
+if (!document.querySelector('link[rel="icon"]')) {
+  const favicon = document.createElement('link');
+  favicon.rel = 'icon';
+  favicon.type = 'image/webp';
+  favicon.href = '/assets/rao-favicon.webp';
+  document.head.appendChild(favicon);
+}
+
 const header = document.querySelector('[data-header]');
 const menuToggle = document.querySelector('[data-menu-toggle]');
 const nav = document.querySelector('[data-nav]');
@@ -83,6 +100,17 @@ if (location.pathname === '/' || location.pathname.endsWith('/index.html')) {
   }
 
   const hero = document.querySelector('.hero');
+  const heroCard = document.querySelector('.hero-card');
+  if (heroCard && !heroCard.querySelector('.hero-card-seal')) {
+    const seal = document.createElement('img');
+    seal.className = 'hero-card-seal';
+    seal.src = '/assets/rao-seal.webp';
+    seal.alt = 'Russian Adoptees Organization official seal';
+    seal.width = 118;
+    seal.height = 118;
+    heroCard.prepend(seal);
+  }
+
   if (hero && !document.querySelector('[data-site-expansion]')) {
     const expansion = document.createElement('section');
     expansion.className = 'section section-soft';
@@ -130,6 +158,7 @@ if (location.pathname === '/' || location.pathname.endsWith('/index.html')) {
       '@type': 'Organization',
       name: 'Russian Adoptees Organization',
       url: 'https://russianadoptees.com/',
+      logo: 'https://russianadoptees.com/assets/rao-seal.webp',
       description: 'An adoptee-led organization connecting and supporting people adopted from Russia and former-Soviet countries through community, practical resources, heritage, education, and advocacy.',
       sameAs: [
         'https://www.facebook.com/groups/russianadoptees',
