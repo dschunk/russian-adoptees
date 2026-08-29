@@ -1,9 +1,8 @@
 // Official RAO visual identity assets.
-const RAO_BRAND_VERSION = '20260829-3';
-const RAO_SEAL_URL = `/assets/rao-seal.webp?v=${RAO_BRAND_VERSION}`;
-const RAO_FAVICON_URL = `/assets/rao-favicon.webp?v=${RAO_BRAND_VERSION}`;
+const RAO_BRAND_VERSION = '20260829-4';
+const RAO_SEAL_URL = `/assets/rao-seal.svg?v=${RAO_BRAND_VERSION}`;
+const RAO_FAVICON_URL = `/assets/rao-favicon.svg?v=${RAO_BRAND_VERSION}`;
 
-// Load the supplemental branding stylesheet, but do not rely on it to render the seal.
 if (!document.querySelector('link[data-rao-branding]')) {
   const branding = document.createElement('link');
   branding.rel = 'stylesheet';
@@ -12,15 +11,13 @@ if (!document.querySelector('link[data-rao-branding]')) {
   document.head.appendChild(branding);
 }
 
-// Force the favicon to the official simplified RAO crest.
 document.querySelectorAll('link[rel~="icon"]').forEach((link) => link.remove());
 const favicon = document.createElement('link');
 favicon.rel = 'icon';
-favicon.type = 'image/webp';
+favicon.type = 'image/svg+xml';
 favicon.href = RAO_FAVICON_URL;
 document.head.appendChild(favicon);
 
-// Render the official seal as a real image in every existing RAO brand mark.
 const installSeal = (element, className = 'rao-brand-image') => {
   if (!element || element.querySelector(`.${className}`)) return;
   element.textContent = '';
@@ -89,7 +86,6 @@ if (menuToggle && nav) {
 
 if (year) year.textContent = new Date().getFullYear();
 
-// Keep the institutional sections visible in the primary navigation everywhere.
 document.querySelectorAll('.site-nav').forEach((siteNav) => {
   const cta = siteNav.querySelector('.nav-cta');
   const ensureNavLink = (href, label) => {
@@ -105,7 +101,6 @@ document.querySelectorAll('.site-nav').forEach((siteNav) => {
   ensureNavLink('/contact.html', 'Contact');
 });
 
-// Turn the original one-page homepage into the front door for the full RAO site.
 if (location.pathname === '/' || location.pathname.endsWith('/index.html')) {
   const routeMap = {
     '#resources': '/resources.html',
@@ -192,7 +187,6 @@ if (location.pathname === '/' || location.pathname.endsWith('/index.html')) {
     hero.insertAdjacentElement('afterend', expansion);
   }
 
-  // Organization structured data for search engines.
   if (!document.querySelector('script[data-rao-schema]')) {
     const schema = document.createElement('script');
     schema.type = 'application/ld+json';
@@ -202,7 +196,7 @@ if (location.pathname === '/' || location.pathname.endsWith('/index.html')) {
       '@type': 'Organization',
       name: 'Russian Adoptees Organization',
       url: 'https://russianadoptees.com/',
-      logo: 'https://russianadoptees.com/assets/rao-seal.webp',
+      logo: 'https://russianadoptees.com/assets/rao-seal.svg',
       description: 'An adoptee-led organization connecting and supporting people adopted from Russia and former-Soviet countries through community, practical resources, heritage, education, and advocacy.',
       sameAs: [
         'https://www.facebook.com/groups/russianadoptees',
@@ -213,7 +207,6 @@ if (location.pathname === '/' || location.pathname.endsWith('/index.html')) {
   }
 }
 
-// Keep high-value public sections one click away from every page.
 document.querySelectorAll('.footer-links').forEach((footerLinks) => {
   const additions = [
     ['/administration.html', 'Administration'],
