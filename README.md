@@ -15,12 +15,13 @@ The Russian Adoptees Organization connects and supports adoptees from Russia and
 
 - Static HTML, CSS, and JavaScript
 - Cloudflare Workers + Static Assets
+- Cloudflare Email Service for the public inquiry system
 - GitHub source control
 - Automatic Cloudflare deployments from `main`
 
 ## Public site structure
 
-- `/` — Homepage
+- `/` — Institutional homepage and primary public gateway
 - `/about.html` — Mission, principles, and organization overview
 - `/administration.html` — Executive leadership and organizational structure
 - `/press.html` — Press Office, media contact, and organization facts
@@ -32,7 +33,11 @@ The Russian Adoptees Organization connects and supports adoptees from Russia and
 - `/documents.html` — Web-native public document archive
 - `/community.html` — Discord and community infrastructure
 - `/news.html` — Organization news and milestone timeline
-- `/sitemap.xml` — Search-engine sitemap
+- `/privacy.html` — Privacy and data-handling notice
+- `/accessibility.html` — Accessibility commitment and reporting path
+- `/.well-known/security.txt` — Public security contact
+- `/site.webmanifest` — Installable-site metadata
+- `/sitemap.xml` — Search-engine sitemap using clean canonical URLs
 - `/robots.txt` — Crawl policy
 
 ## Current public channels
@@ -45,15 +50,22 @@ The Russian Adoptees Organization connects and supports adoptees from Russia and
 
 The public contact directory intentionally uses role-based organization addresses rather than publishing a personal officer address.
 
+## Cloudflare Worker and security layer
+
+`worker/index.js` runs before all routes. Normal site requests are passed to the bound Cloudflare Static Assets service and returned with the shared security-header policy. `/api/*` routes are handled directly by the Worker.
+
+The response policy includes Content Security Policy, frame protection, MIME-sniffing protection, Referrer Policy, Permissions Policy, Cross-Origin Opener Policy, and HSTS on HTTPS responses.
+
 ## Contact API
 
-`POST /api/contact` is handled by `worker/index.js`. Static pages continue to be served directly from `public/`; only `/api/*` routes execute Worker logic.
+`POST /api/contact` is handled by `worker/index.js` and delivered through the Cloudflare Email Service binding.
 
 The contact API:
 
 - validates all submitted fields server-side;
 - checks same-origin requests when an Origin header is present;
 - enforces request and field-length limits;
+- strips CR/LF characters from values used in mail headers;
 - uses a honeypot and minimum-submission-time check for basic bot filtering;
 - sends through Cloudflare Email Service using the `EMAIL` send binding;
 - uses `contact@russianadoptees.com` as the public sender;
@@ -66,17 +78,19 @@ The private destination address must never be committed to this repository. Conf
 
 ## Official branding
 
-The site-wide identity uses the official RAO navy-and-gold seal in `public/assets/rao-seal.webp` and the simplified crest favicon in `public/assets/rao-favicon.webp`. Branding overrides are centralized in `public/branding.css`, explicitly referenced by every public page, and reinforced by `public/app.js`. Versioned asset URLs prevent stale Cloudflare or browser caches from hiding a newly deployed seal.
+The site-wide identity uses the official RAO navy-and-gold seal in `public/assets/rao-seal.webp` and the simplified crest favicon in `public/assets/rao-favicon.webp`. Branding overrides are centralized in `public/branding.css`; the shared `public/presidential.css` layer provides accessibility, responsive, print, navigation, and institutional presentation refinements. Versioned asset URLs reduce stale browser or edge-cache presentation issues.
 
 ## Content standards
 
-The website is designed to distinguish clearly between:
+The website distinguishes clearly between:
 
 1. **RAO policy and organizational positions** — decisions adopted by the organization.
 2. **Community and educational resources** — information intended to help adoptees organize questions and find a starting point.
 3. **Official government determinations** — decisions that only the relevant government, embassy, consulate, court, or other competent authority can make.
 
 References to embassies, consulates, governments, or public officials must not imply endorsement, affiliation, partnership, or delegated governmental authority unless such a relationship is explicitly documented.
+
+Time-sensitive legal, citizenship, passport, and consular information should include a review date and link to official-source material wherever practical.
 
 ## Local development
 
@@ -87,9 +101,15 @@ npm run dev
 
 ## Deploy
 
+Production deploys automatically from `main`. A manual deployment may be performed when necessary:
+
 ```bash
 npm run deploy
 ```
+
+## Validation
+
+GitHub Actions validates pushes and pull requests by checking JavaScript syntax, public HTML branding requirements, local file references, and a Wrangler deployment dry-run.
 
 ## Repository safety
 
