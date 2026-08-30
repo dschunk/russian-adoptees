@@ -1,9 +1,15 @@
-// Official RAO visual identity assets.
-const RAO_BRAND_VERSION = '20260829-6';
+// Russian Adoptees Organization site shell and progressive enhancements.
+const RAO_BRAND_VERSION = '20260829-7';
 const RAO_SEAL_URL = `/assets/rao-seal.svg?v=${RAO_BRAND_VERSION}`;
 const RAO_FAVICON_URL = `/assets/rao-favicon.svg?v=${RAO_BRAND_VERSION}`;
+const RAO_ORIGIN = 'https://russianadoptees.com';
 
-if (!document.querySelector('link[data-rao-branding]')) {
+const canonicalPath = (pathname) => {
+  if (!pathname || pathname === '/index.html') return '/';
+  return pathname.replace(/\.html$/, '') || '/';
+};
+
+if (!document.querySelector('link[data-rao-branding]') && !document.querySelector('link[href*="branding.css"]')) {
   const branding = document.createElement('link');
   branding.rel = 'stylesheet';
   branding.href = `/branding.css?v=${RAO_BRAND_VERSION}`;
@@ -18,6 +24,27 @@ favicon.type = 'image/svg+xml';
 favicon.href = RAO_FAVICON_URL;
 document.head.appendChild(favicon);
 
+if (!document.querySelector('link[rel="manifest"]')) {
+  const manifest = document.createElement('link');
+  manifest.rel = 'manifest';
+  manifest.href = '/site.webmanifest';
+  document.head.appendChild(manifest);
+}
+
+if (!document.querySelector('link[rel="canonical"]')) {
+  const canonical = document.createElement('link');
+  canonical.rel = 'canonical';
+  canonical.href = `${RAO_ORIGIN}${canonicalPath(location.pathname)}`;
+  document.head.appendChild(canonical);
+}
+
+if (!document.querySelector('meta[property="og:image"]')) {
+  const image = document.createElement('meta');
+  image.setAttribute('property', 'og:image');
+  image.content = `${RAO_ORIGIN}/assets/rao-seal.webp`;
+  document.head.appendChild(image);
+}
+
 const installSeal = (element, className = 'rao-brand-image') => {
   if (!element || element.querySelector(`.${className}`)) return;
   element.textContent = '';
@@ -29,8 +56,10 @@ const installSeal = (element, className = 'rao-brand-image') => {
   const image = document.createElement('img');
   image.className = className;
   image.src = RAO_SEAL_URL;
-  image.alt = 'Russian Adoptees Organization seal';
+  image.alt = '';
   image.decoding = 'async';
+  image.width = className === 'rao-admin-seal-image' ? 190 : 62;
+  image.height = image.width;
   image.style.width = '100%';
   image.style.height = '100%';
   image.style.objectFit = 'contain';
@@ -55,6 +84,31 @@ const header = document.querySelector('[data-header]');
 const menuToggle = document.querySelector('[data-menu-toggle]');
 const nav = document.querySelector('[data-nav]');
 const year = document.querySelector('[data-year]');
+
+const navigation = [
+  ['/about.html', 'About'],
+  ['/administration.html', 'Administration'],
+  ['/resources.html', 'Resources'],
+  ['/community.html', 'Community'],
+  ['/news.html', 'News'],
+  ['/press.html', 'Press']
+];
+
+document.querySelectorAll('.site-nav').forEach((siteNav) => {
+  const links = navigation.map(([href, label]) => `<a href="${href}">${label}</a>`).join('');
+  siteNav.innerHTML = `${links}<a class="nav-cta" href="/contact.html">Contact</a>`;
+});
+
+const current = canonicalPath(location.pathname);
+const markCurrentLinks = () => {
+  document.querySelectorAll('.site-nav a, .footer-links a').forEach((link) => {
+    const href = link.getAttribute('href');
+    if (!href || href.startsWith('http') || href.startsWith('#')) return;
+    const linkPath = canonicalPath(new URL(href, location.origin).pathname);
+    if (linkPath === current) link.setAttribute('aria-current', 'page');
+  });
+};
+markCurrentLinks();
 
 const updateHeader = () => {
   if (!header) return;
@@ -82,154 +136,91 @@ if (menuToggle && nav) {
       menuToggle.setAttribute('aria-label', 'Open navigation');
     });
   });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape' || !nav.classList.contains('open')) return;
+    nav.classList.remove('open');
+    menuToggle.setAttribute('aria-expanded', 'false');
+    menuToggle.setAttribute('aria-label', 'Open navigation');
+    menuToggle.focus();
+  });
 }
 
 if (year) year.textContent = new Date().getFullYear();
 
-document.querySelectorAll('.site-nav').forEach((siteNav) => {
-  const cta = siteNav.querySelector('.nav-cta');
-  const ensureNavLink = (href, label) => {
-    if (siteNav.querySelector(`a[href="${href}"]`)) return;
-    const link = document.createElement('a');
-    link.href = href;
-    link.textContent = label;
-    if (cta) siteNav.insertBefore(link, cta);
-    else siteNav.appendChild(link);
-  };
-  ensureNavLink('/administration.html', 'Administration');
-  ensureNavLink('/press.html', 'Press');
-  ensureNavLink('/contact.html', 'Contact');
+document.querySelectorAll('.footer-links').forEach((footerLinks) => {
+  footerLinks.innerHTML = [
+    ['/about.html', 'About'],
+    ['/administration.html', 'Administration'],
+    ['/resources.html', 'Resources'],
+    ['/policies.html', 'Policies'],
+    ['/documents.html', 'Documents'],
+    ['/community.html', 'Community'],
+    ['/press.html', 'Press'],
+    ['/privacy.html', 'Privacy'],
+    ['/accessibility.html', 'Accessibility']
+  ].map(([href, label]) => `<a href="${href}">${label}</a>`).join('');
+});
+markCurrentLinks();
+
+document.querySelectorAll('.footer-bottom').forEach((footerBottom) => {
+  if (footerBottom.querySelector('.footer-legal')) return;
+  const legal = document.createElement('span');
+  legal.className = 'footer-legal';
+  legal.innerHTML = '<a href="/privacy.html">Privacy</a><a href="/accessibility.html">Accessibility</a>';
+  footerBottom.appendChild(legal);
 });
 
-if (location.pathname === '/' || location.pathname.endsWith('/index.html')) {
-  const routeMap = {
-    '#resources': '/resources.html',
-    '#community': '/community.html',
-    '#about': '/about.html',
-    '#contact': '/contact.html'
-  };
+document.querySelectorAll('a[target="_blank"]').forEach((link) => {
+  link.rel = 'noopener noreferrer';
+});
 
-  document.querySelectorAll('a[href]').forEach((link) => {
-    const route = routeMap[link.getAttribute('href')];
-    if (route) link.setAttribute('href', route);
-  });
-
-  const resourceLinks = document.querySelectorAll('.resource-list a');
-  const resourceRoutes = [
-    '/citizenship.html',
-    '/citizenship.html',
-    '/resources.html',
-    '/resources.html',
-    '/resources.html',
-    '/community.html'
-  ];
-  resourceLinks.forEach((link, index) => {
-    if (resourceRoutes[index]) link.setAttribute('href', resourceRoutes[index]);
-  });
-
-  const resourceLibraryLink = document.querySelector('.resources-copy .text-link');
-  if (resourceLibraryLink) {
-    resourceLibraryLink.setAttribute('href', '/resources.html');
-    resourceLibraryLink.innerHTML = 'Explore the resource center <span>→</span>';
-  }
-
-  const hero = document.querySelector('.hero');
-  const heroCard = document.querySelector('.hero-card');
-  if (heroCard && !heroCard.querySelector('.hero-card-seal')) {
-    const seal = document.createElement('img');
-    seal.className = 'hero-card-seal';
-    seal.src = RAO_SEAL_URL;
-    seal.alt = 'Russian Adoptees Organization official seal';
-    seal.width = 118;
-    seal.height = 118;
-    seal.style.width = '118px';
-    seal.style.height = '118px';
-    seal.style.objectFit = 'contain';
-    seal.style.marginBottom = '24px';
-    seal.style.filter = 'drop-shadow(0 16px 24px rgba(0,0,0,.24))';
-    heroCard.prepend(seal);
-  }
-
-  if (hero && !document.querySelector('[data-site-expansion]')) {
-    const expansion = document.createElement('section');
-    expansion.className = 'section section-soft';
-    expansion.setAttribute('data-site-expansion', '');
-    expansion.innerHTML = `
-      <div class="container">
-        <div class="section-intro reveal">
-          <p class="eyebrow dark">Current resources · Reviewed August 29, 2026</p>
-          <h2>Answers built specifically for Russian adoptees.</h2>
-          <p>RAO now combines adoptee experience with official-source research: current Russian citizenship law, consular procedures, documentation guidance, community infrastructure, and a public organizational archive.</p>
-        </div>
-        <div class="card-grid four-up">
-          <a class="feature-card reveal" href="/citizenship.html">
-            <div class="icon-box" aria-hidden="true">RU</div>
-            <h3>Citizenship & Passports</h3>
-            <p>Were you adopted from Russia? Start here to understand why you may still hold Russian citizenship and how official verification works.</p>
-          </a>
-          <a class="feature-card reveal" href="/law-updates.html">
-            <div class="icon-box" aria-hidden="true">§</div>
-            <h3>Russian Law Updates</h3>
-            <p>Current Russian citizenship and consular changes translated into plain English, with dates and links to the official government source.</p>
-          </a>
-          <a class="feature-card reveal" href="/resources.html">
-            <div class="icon-box" aria-hidden="true">⌘</div>
-            <h3>Resource Center</h3>
-            <p>Records, documentation, consular assistance, biological-family search, heritage, travel, and practical adoptee starting points.</p>
-          </a>
-          <a class="feature-card reveal" href="/community.html">
-            <div class="icon-box" aria-hidden="true">◎</div>
-            <h3>Russian Adoptee Community</h3>
-            <p>Connect through the established adoptee-only Facebook community, the official RAO Discord, regional groups, and meetups.</p>
-          </a>
-        </div>
-      </div>`;
-    hero.insertAdjacentElement('afterend', expansion);
-  }
-
+if (current === '/') {
   if (!document.querySelector('script[data-rao-schema]')) {
     const schema = document.createElement('script');
     schema.type = 'application/ld+json';
     schema.setAttribute('data-rao-schema', '');
     schema.textContent = JSON.stringify({
       '@context': 'https://schema.org',
-      '@type': 'Organization',
-      name: 'Russian Adoptees Organization',
-      url: 'https://russianadoptees.com/',
-      logo: 'https://russianadoptees.com/assets/rao-seal.svg',
-      description: 'An adoptee-led organization connecting and supporting people adopted from Russia and former-Soviet countries through community, practical resources, heritage, education, and advocacy.',
-      sameAs: [
-        'https://www.facebook.com/groups/russianadoptees',
-        'https://discord.gg/XqxWJHAnCY'
+      '@graph': [
+        {
+          '@type': 'Organization',
+          '@id': `${RAO_ORIGIN}/#organization`,
+          name: 'Russian Adoptees Organization',
+          url: `${RAO_ORIGIN}/`,
+          logo: `${RAO_ORIGIN}/assets/rao-seal.svg`,
+          description: 'An independent, adoptee-led organization connecting and supporting people adopted from Russia and former-Soviet countries through community, practical resources, heritage, education, and advocacy.',
+          sameAs: [
+            'https://www.facebook.com/groups/russianadoptees',
+            'https://discord.gg/XqxWJHAnCY'
+          ]
+        },
+        {
+          '@type': 'WebSite',
+          '@id': `${RAO_ORIGIN}/#website`,
+          url: `${RAO_ORIGIN}/`,
+          name: 'Russian Adoptees Organization',
+          publisher: { '@id': `${RAO_ORIGIN}/#organization` }
+        }
       ]
     });
     document.head.appendChild(schema);
   }
 }
 
-document.querySelectorAll('.footer-links').forEach((footerLinks) => {
-  const additions = [
-    ['/administration.html', 'Administration'],
-    ['/press.html', 'Press'],
-    ['/law-updates.html', 'Law Updates'],
-    ['/documents.html', 'Documents'],
-    ['/community.html', 'Community'],
-    ['https://discord.gg/XqxWJHAnCY', 'Discord'],
-    ['/contact.html', 'Contact']
-  ];
-  additions.forEach(([href, label]) => {
-    if (!footerLinks.querySelector(`a[href="${href}"]`)) {
-      const link = document.createElement('a');
-      link.href = href;
-      link.textContent = label;
-      if (href.startsWith('http')) {
-        link.target = '_blank';
-        link.rel = 'noopener noreferrer';
-      }
-      footerLinks.appendChild(link);
-    }
-  });
-});
+if (document.body.classList.contains('inner-page')) {
+  const topButton = document.createElement('button');
+  topButton.className = 'back-to-top';
+  topButton.type = 'button';
+  topButton.setAttribute('aria-label', 'Back to top');
+  topButton.textContent = '↑';
+  document.body.appendChild(topButton);
+
+  const updateTopButton = () => topButton.classList.toggle('visible', window.scrollY > 700);
+  updateTopButton();
+  window.addEventListener('scroll', updateTopButton, { passive: true });
+  topButton.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+}
 
 const revealItems = document.querySelectorAll('.reveal');
 if ('IntersectionObserver' in window && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {

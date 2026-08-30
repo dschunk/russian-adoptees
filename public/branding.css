@@ -1,3 +1,5 @@
+@import url('/presidential.css?v=20260829-7');
+
 /* Official RAO seal branding — August 2026 */
 .brand-mark {
   width: 54px !important;
@@ -5,20 +7,20 @@
   flex: 0 0 54px !important;
   border: 0 !important;
   border-radius: 50% !important;
-  background: transparent url('/assets/rao-seal.svg?v=20260829-6') center/contain no-repeat !important;
+  background: transparent url('/assets/rao-seal.svg?v=20260829-7') center/contain no-repeat !important;
   box-shadow: 0 4px 18px rgba(0,0,0,.18) !important;
 }
 .brand-mark span { opacity: 0 !important; }
 .site-header.scrolled .brand-mark {
   border: 0 !important;
-  background: transparent url('/assets/rao-seal.svg?v=20260829-6') center/contain no-repeat !important;
+  background: transparent url('/assets/rao-seal.svg?v=20260829-7') center/contain no-repeat !important;
   box-shadow: 0 3px 14px rgba(11,31,51,.16) !important;
 }
 .footer-mark {
   width: 62px !important;
   height: 62px !important;
   flex-basis: 62px !important;
-  background: transparent url('/assets/rao-seal.svg?v=20260829-6') center/contain no-repeat !important;
+  background: transparent url('/assets/rao-seal.svg?v=20260829-7') center/contain no-repeat !important;
   box-shadow: none !important;
 }
 .admin-seal {
@@ -26,7 +28,7 @@
   height: 190px !important;
   border: 0 !important;
   border-radius: 50% !important;
-  background: transparent url('/assets/rao-seal.svg?v=20260829-6') center/contain no-repeat !important;
+  background: transparent url('/assets/rao-seal.svg?v=20260829-7') center/contain no-repeat !important;
   box-shadow: 0 18px 44px rgba(11,31,51,.16) !important;
 }
 .admin-seal span,.admin-seal small { opacity:0 !important; }

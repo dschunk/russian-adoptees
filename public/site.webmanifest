@@ -1,0 +1,18 @@
+{
+  "name": "Russian Adoptees Organization",
+  "short_name": "RAO",
+  "description": "Independent, adoptee-led community, resources, heritage, education, and advocacy for people adopted from Russia and former-Soviet countries.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fffdf9",
+  "theme_color": "#0b1f33",
+  "icons": [
+    {
+      "src": "/assets/rao-favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
