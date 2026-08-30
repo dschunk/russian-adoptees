@@ -1,5 +1,7 @@
 # Russian Adoptees Organization
 
+> **Independence notice:** The Russian Adoptees Organization and this repository are independent community/organizational projects. They are not affiliated with, sponsored by, or endorsed by David Schunk's current or former employers. Employer confidential or proprietary information, internal systems, customer data, credentials, and employer work product must never be contributed here.
+
 Official website source for the Russian Adoptees Organization.
 
 ## Mission
@@ -113,4 +115,4 @@ GitHub Actions validates pushes and pull requests by checking JavaScript syntax,
 
 ## Repository safety
 
-Do not commit API keys, passwords, private member data, private forwarding addresses, email credentials, Cloudflare tokens, private correspondence, applicant data, or other secrets. Store secrets in Cloudflare's protected environment/secrets system instead.
+Do not commit API keys, passwords, private member data, private forwarding addresses, email credentials, Cloudflare tokens, private correspondence, applicant data, employer confidential/proprietary material, or other secrets. Store secrets in Cloudflare's protected environment/secrets system instead.
