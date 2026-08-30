@@ -9,6 +9,29 @@ const setStatus = (message, state = '') => {
   formStatus.dataset.state = state;
 };
 
+const prefillContactForm = () => {
+  if (!contactForm) return;
+  const params = new URLSearchParams(location.search);
+  const requestedTopic = params.get('topic');
+  const requestedSubject = params.get('subject');
+
+  if (requestedTopic) {
+    const topic = contactForm.elements.namedItem('topic');
+    const matching = Array.from(topic?.options || []).find((option) =>
+      option.textContent.toLowerCase() === requestedTopic.toLowerCase() ||
+      option.value.toLowerCase() === requestedTopic.toLowerCase()
+    );
+    if (matching && topic) topic.value = matching.value;
+  }
+
+  if (requestedSubject) {
+    const subject = contactForm.elements.namedItem('subject');
+    if (subject) subject.value = requestedSubject.slice(0, 120);
+  }
+};
+
+prefillContactForm();
+
 if (contactForm) {
   contactForm.addEventListener('submit', async (event) => {
     event.preventDefault();
