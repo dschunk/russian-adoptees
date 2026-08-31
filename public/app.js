@@ -1,12 +1,14 @@
 // Russian Adoptees Organization site shell and progressive enhancements.
-const RAO_BRAND_VERSION = '20260829-7';
+const RAO_BRAND_VERSION = '20260830-1';
+const RAO_ORIGIN = 'https://russianadoptees.com';
 const RAO_SEAL_URL = `/assets/rao-seal.svg?v=${RAO_BRAND_VERSION}`;
 const RAO_FAVICON_URL = `/assets/rao-favicon.svg?v=${RAO_BRAND_VERSION}`;
-const RAO_ORIGIN = 'https://russianadoptees.com';
+const RAO_SOCIAL_URL = `${RAO_ORIGIN}/assets/rao-social.jpg?v=${RAO_BRAND_VERSION}`;
 
 const canonicalPath = (pathname) => {
   if (!pathname || pathname === '/index.html') return '/';
-  return pathname.replace(/\.html$/, '') || '/';
+  const extensionless = pathname.replace(/\.html$/, '');
+  return extensionless.length > 1 ? extensionless.replace(/\/+$/, '') : extensionless || '/';
 };
 
 if (!document.querySelector('link[data-rao-branding]') && !document.querySelector('link[href*="branding.css"]')) {
@@ -31,19 +33,34 @@ if (!document.querySelector('link[rel="manifest"]')) {
   document.head.appendChild(manifest);
 }
 
-if (!document.querySelector('link[rel="canonical"]')) {
-  const canonical = document.createElement('link');
+const canonicalUrl = `${RAO_ORIGIN}${canonicalPath(location.pathname)}`;
+let canonical = document.querySelector('link[rel="canonical"]');
+if (!canonical) {
+  canonical = document.createElement('link');
   canonical.rel = 'canonical';
-  canonical.href = `${RAO_ORIGIN}${canonicalPath(location.pathname)}`;
   document.head.appendChild(canonical);
 }
+canonical.href = canonicalUrl;
 
-if (!document.querySelector('meta[property="og:image"]')) {
-  const image = document.createElement('meta');
-  image.setAttribute('property', 'og:image');
-  image.content = `${RAO_ORIGIN}/assets/rao-seal.webp`;
-  document.head.appendChild(image);
-}
+const ensureMeta = (attribute, key, value) => {
+  let meta = document.querySelector(`meta[${attribute}="${key}"]`);
+  if (!meta) {
+    meta = document.createElement('meta');
+    meta.setAttribute(attribute, key);
+    document.head.appendChild(meta);
+  }
+  meta.content = value;
+  return meta;
+};
+
+ensureMeta('property', 'og:url', canonicalUrl);
+ensureMeta('property', 'og:type', 'website');
+ensureMeta('property', 'og:image', RAO_SOCIAL_URL);
+ensureMeta('property', 'og:image:width', '600');
+ensureMeta('property', 'og:image:height', '315');
+ensureMeta('property', 'og:image:alt', 'Russian Adoptees Organization');
+ensureMeta('name', 'twitter:card', 'summary_large_image');
+ensureMeta('name', 'twitter:image', RAO_SOCIAL_URL);
 
 const installSeal = (element, className = 'rao-brand-image') => {
   if (!element || element.querySelector(`.${className}`)) return;
@@ -86,17 +103,17 @@ const nav = document.querySelector('[data-nav]');
 const year = document.querySelector('[data-year]');
 
 const navigation = [
-  ['/about.html', 'About'],
-  ['/administration.html', 'Administration'],
-  ['/resources.html', 'Resources'],
-  ['/community.html', 'Community'],
-  ['/news.html', 'News'],
-  ['/press.html', 'Press']
+  ['/about', 'About'],
+  ['/administration', 'Administration'],
+  ['/resources', 'Resources'],
+  ['/community', 'Community'],
+  ['/news', 'News'],
+  ['/press', 'Press']
 ];
 
 document.querySelectorAll('.site-nav').forEach((siteNav) => {
   const links = navigation.map(([href, label]) => `<a href="${href}">${label}</a>`).join('');
-  siteNav.innerHTML = `${links}<a class="nav-cta" href="/contact.html">Contact</a>`;
+  siteNav.innerHTML = `${links}<a class="nav-cta" href="/contact">Contact</a>`;
 });
 
 const current = canonicalPath(location.pathname);
@@ -150,15 +167,15 @@ if (year) year.textContent = new Date().getFullYear();
 
 document.querySelectorAll('.footer-links').forEach((footerLinks) => {
   footerLinks.innerHTML = [
-    ['/about.html', 'About'],
-    ['/administration.html', 'Administration'],
-    ['/resources.html', 'Resources'],
-    ['/policies.html', 'Policies'],
-    ['/documents.html', 'Documents'],
-    ['/community.html', 'Community'],
-    ['/press.html', 'Press'],
-    ['/privacy.html', 'Privacy'],
-    ['/accessibility.html', 'Accessibility']
+    ['/about', 'About'],
+    ['/administration', 'Administration'],
+    ['/resources', 'Resources'],
+    ['/policies', 'Policies'],
+    ['/documents', 'Documents'],
+    ['/community', 'Community'],
+    ['/press', 'Press'],
+    ['/privacy', 'Privacy'],
+    ['/accessibility', 'Accessibility']
   ].map(([href, label]) => `<a href="${href}">${label}</a>`).join('');
 });
 markCurrentLinks();
@@ -167,7 +184,7 @@ document.querySelectorAll('.footer-bottom').forEach((footerBottom) => {
   if (footerBottom.querySelector('.footer-legal')) return;
   const legal = document.createElement('span');
   legal.className = 'footer-legal';
-  legal.innerHTML = '<a href="/privacy.html">Privacy</a><a href="/accessibility.html">Accessibility</a>';
+  legal.innerHTML = '<a href="/privacy">Privacy</a><a href="/accessibility">Accessibility</a>';
   footerBottom.appendChild(legal);
 });
 
@@ -189,6 +206,7 @@ if (current === '/') {
           name: 'Russian Adoptees Organization',
           url: `${RAO_ORIGIN}/`,
           logo: `${RAO_ORIGIN}/assets/rao-seal.svg`,
+          image: `${RAO_ORIGIN}/assets/rao-social.jpg`,
           description: 'An independent, adoptee-led organization connecting and supporting people adopted from Russia and former-Soviet countries through community, practical resources, heritage, education, and advocacy.',
           sameAs: [
             'https://www.facebook.com/groups/russianadoptees',
