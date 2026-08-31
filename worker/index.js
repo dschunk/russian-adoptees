@@ -33,6 +33,8 @@ const CANONICAL_ROUTES = new Set([
   '/resources'
 ]);
 
+const SOCIAL_IMAGE = 'https://russianadoptees.com/assets/rao-social.jpg';
+
 const SECURITY_HEADERS = {
   'x-content-type-options': 'nosniff',
   'x-frame-options': 'DENY',
@@ -69,10 +71,114 @@ const secureResponse = (response, request) => {
   });
 };
 
+const canonicalPath = (pathname) => {
+  if (!pathname || pathname === '/index.html') return '/';
+  const extensionless = pathname.replace(/\.html$/, '');
+  return extensionless.length > 1 ? extensionless.replace(/\/+$/, '') : extensionless || '/';
+};
+
 const redirect = (request, url, pathname, status = 301) => {
   const destination = new URL(pathname, url.origin);
   destination.search = url.search;
   return secureResponse(Response.redirect(destination.toString(), status), request);
+};
+
+const normalizeHtml = (response, request, url) => {
+  const state = {
+    canonical: false,
+    ogUrl: false,
+    ogImage: false,
+    ogImageWidth: false,
+    ogImageHeight: false,
+    ogImageAlt: false,
+    twitterCard: false,
+    twitterImage: false
+  };
+  const canonicalUrl = `https://russianadoptees.com${canonicalPath(url.pathname)}`;
+
+  const rewriter = new HTMLRewriter()
+    .on('link[rel="canonical"]', {
+      element(element) {
+        state.canonical = true;
+        element.setAttribute('href', canonicalUrl);
+      }
+    })
+    .on('meta[property="og:url"]', {
+      element(element) {
+        state.ogUrl = true;
+        element.setAttribute('content', canonicalUrl);
+      }
+    })
+    .on('meta[property="og:image"]', {
+      element(element) {
+        state.ogImage = true;
+        element.setAttribute('content', SOCIAL_IMAGE);
+      }
+    })
+    .on('meta[property="og:image:width"]', {
+      element(element) {
+        state.ogImageWidth = true;
+        element.setAttribute('content', '600');
+      }
+    })
+    .on('meta[property="og:image:height"]', {
+      element(element) {
+        state.ogImageHeight = true;
+        element.setAttribute('content', '315');
+      }
+    })
+    .on('meta[property="og:image:alt"]', {
+      element(element) {
+        state.ogImageAlt = true;
+        element.setAttribute('content', 'Russian Adoptees Organization');
+      }
+    })
+    .on('meta[name="twitter:card"]', {
+      element(element) {
+        state.twitterCard = true;
+        element.setAttribute('content', 'summary_large_image');
+      }
+    })
+    .on('meta[name="twitter:image"]', {
+      element(element) {
+        state.twitterImage = true;
+        element.setAttribute('content', SOCIAL_IMAGE);
+      }
+    })
+    .on('a[href]', {
+      element(element) {
+        const href = element.getAttribute('href');
+        if (!href || href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('tel:')) return;
+        try {
+          const target = new URL(href, url.origin);
+          if (target.origin !== url.origin) return;
+          if (!target.pathname.endsWith('.html')) return;
+          const extensionless = target.pathname.slice(0, -5);
+          if (!CANONICAL_ROUTES.has(extensionless)) return;
+          element.setAttribute('href', `${extensionless}${target.search}${target.hash}`);
+        } catch {
+          // Leave malformed or non-URL values untouched.
+        }
+      }
+    })
+    .on('head', {
+      element(element) {
+        element.onEndTag((endTag) => {
+          const tags = [];
+          if (!state.canonical) tags.push(`<link rel="canonical" href="${canonicalUrl}">`);
+          if (!state.ogUrl) tags.push(`<meta property="og:url" content="${canonicalUrl}">`);
+          if (!state.ogImage) tags.push(`<meta property="og:image" content="${SOCIAL_IMAGE}">`);
+          if (!state.ogImageWidth) tags.push('<meta property="og:image:width" content="600">');
+          if (!state.ogImageHeight) tags.push('<meta property="og:image:height" content="315">');
+          if (!state.ogImageAlt) tags.push('<meta property="og:image:alt" content="Russian Adoptees Organization">');
+          if (!state.twitterCard) tags.push('<meta name="twitter:card" content="summary_large_image">');
+          if (!state.twitterImage) tags.push(`<meta name="twitter:image" content="${SOCIAL_IMAGE}">`);
+          if (tags.length) endTag.before(tags.join(''), { html: true });
+        });
+      }
+    });
+
+  return secureResponse(rewriter.transform(response), request);
 };
 
 const json = (data, status = 200, request = null) => {
@@ -125,6 +231,10 @@ export default {
       }
 
       const assetResponse = await env.ASSETS.fetch(request);
+      const contentType = assetResponse.headers.get('content-type') || '';
+      if (request.method === 'GET' && contentType.toLowerCase().includes('text/html')) {
+        return normalizeHtml(assetResponse, request, url);
+      }
       return secureResponse(assetResponse, request);
     }
 
