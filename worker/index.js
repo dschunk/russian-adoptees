@@ -9,6 +9,30 @@ const ALLOWED_TOPICS = new Set([
   'Other'
 ]);
 
+const LEGACY_REDIRECTS = new Map([
+  ['/the-administration', '/administration'],
+  ['/issues', '/resources'],
+  ['/faq', '/resources'],
+  ['/welcome-home', '/'],
+  ['/home', '/']
+]);
+
+const CANONICAL_ROUTES = new Set([
+  '/about',
+  '/accessibility',
+  '/administration',
+  '/citizenship',
+  '/community',
+  '/contact',
+  '/documents',
+  '/law-updates',
+  '/news',
+  '/policies',
+  '/press',
+  '/privacy',
+  '/resources'
+]);
+
 const SECURITY_HEADERS = {
   'x-content-type-options': 'nosniff',
   'x-frame-options': 'DENY',
@@ -45,6 +69,12 @@ const secureResponse = (response, request) => {
   });
 };
 
+const redirect = (request, url, pathname, status = 301) => {
+  const destination = new URL(pathname, url.origin);
+  destination.search = url.search;
+  return secureResponse(Response.redirect(destination.toString(), status), request);
+};
+
 const json = (data, status = 200, request = null) => {
   const response = new Response(JSON.stringify(data), {
     status,
@@ -69,6 +99,31 @@ export default {
     const url = new URL(request.url);
 
     if (!url.pathname.startsWith('/api/')) {
+      if (request.method === 'GET' || request.method === 'HEAD') {
+        const pathname = url.pathname;
+        const trimmedPath = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname;
+        const legacyTarget = LEGACY_REDIRECTS.get(trimmedPath.toLowerCase());
+
+        if (legacyTarget) {
+          return redirect(request, url, legacyTarget);
+        }
+
+        if (pathname === '/index.html') {
+          return redirect(request, url, '/');
+        }
+
+        if (pathname.endsWith('.html')) {
+          const extensionless = pathname.slice(0, -5);
+          if (CANONICAL_ROUTES.has(extensionless)) {
+            return redirect(request, url, extensionless);
+          }
+        }
+
+        if (pathname.length > 1 && pathname.endsWith('/') && CANONICAL_ROUTES.has(trimmedPath)) {
+          return redirect(request, url, trimmedPath);
+        }
+      }
+
       const assetResponse = await env.ASSETS.fetch(request);
       return secureResponse(assetResponse, request);
     }
