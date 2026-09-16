@@ -14,6 +14,7 @@
   --shadow: 0 24px 70px rgba(8, 25, 42, 0.12);
   --radius: 24px;
   --container: min(1180px, calc(100% - 40px));
+  --travel-alert-height: 0px;
 }
 
 * { box-sizing: border-box; }
@@ -35,6 +36,77 @@ button, input, textarea, select { font: inherit; }
 .section { padding: 104px 0; }
 .section-soft { background: var(--cream); }
 
+
+.travel-advisory {
+  position: sticky;
+  top: 0;
+  z-index: 140;
+  width: 100%;
+  color: #fff;
+  background: #9f1d2d;
+  border-bottom: 1px solid rgba(255,255,255,.22);
+  box-shadow: 0 4px 14px rgba(68, 7, 18, .2);
+}
+.travel-advisory-inner {
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 22px;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+.travel-advisory-copy {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.travel-advisory-icon {
+  width: 25px;
+  height: 25px;
+  flex: 0 0 25px;
+  display: grid;
+  place-items: center;
+  border: 2px solid rgba(255,255,255,.9);
+  border-radius: 50%;
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1;
+}
+.travel-advisory-copy > span:last-child {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 3px 10px;
+}
+.travel-advisory strong {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .055em;
+}
+.travel-advisory small {
+  color: rgba(255,255,255,.84);
+  font-size: 12px;
+  line-height: 1.35;
+}
+.travel-advisory a {
+  flex: 0 0 auto;
+  padding: 7px 11px;
+  border: 1px solid rgba(255,255,255,.42);
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+  transition: background .2s ease, border-color .2s ease;
+}
+.travel-advisory a:hover,
+.travel-advisory a:focus-visible {
+  background: rgba(255,255,255,.13);
+  border-color: rgba(255,255,255,.75);
+}
+
+
 .skip-link {
   position: fixed;
   top: 12px;
@@ -51,7 +123,7 @@ button, input, textarea, select { font: inherit; }
 
 .site-header {
   position: fixed;
-  inset: 0 0 auto 0;
+  inset: var(--travel-alert-height, 0px) 0 auto 0;
   z-index: 100;
   border-bottom: 1px solid transparent;
   transition: background .25s ease, border-color .25s ease, box-shadow .25s ease;
@@ -382,6 +454,42 @@ button, input, textarea, select { font: inherit; }
   .community-panel { padding: 56px; grid-template-columns: 1fr; gap: 35px; }
   .cta-box { grid-template-columns: 1fr; }
   .cta-actions { flex-direction: row; min-width: 0; flex-wrap: wrap; }
+}
+
+@media (max-width: 720px) {
+  .travel-advisory-inner {
+    min-height: 0;
+    align-items: flex-start;
+    gap: 9px;
+    padding-top: 9px;
+    padding-bottom: 9px;
+  }
+  .travel-advisory-copy { gap: 8px; }
+  .travel-advisory-icon {
+    width: 22px;
+    height: 22px;
+    flex-basis: 22px;
+    margin-top: 1px;
+    font-size: 12px;
+  }
+  .travel-advisory-copy > span:last-child { display: block; }
+  .travel-advisory strong {
+    display: block;
+    font-size: 10px;
+    line-height: 1.35;
+    letter-spacing: .035em;
+  }
+  .travel-advisory small { display: none; }
+  .travel-advisory a {
+    padding: 3px 0;
+    border: 0;
+    font-size: 10px;
+    white-space: normal;
+    text-align: right;
+    max-width: 112px;
+  }
+  .travel-advisory a:hover,
+  .travel-advisory a:focus-visible { background: transparent; text-decoration: underline; }
 }
 
 @media (max-width: 820px) {
