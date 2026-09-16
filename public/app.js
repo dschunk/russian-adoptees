@@ -62,6 +62,44 @@ ensureMeta('property', 'og:image:alt', 'Russian Adoptees Organization');
 ensureMeta('name', 'twitter:card', 'summary_large_image');
 ensureMeta('name', 'twitter:image', RAO_SOCIAL_URL);
 
+
+const travelAdvisory = document.createElement('aside');
+travelAdvisory.className = 'travel-advisory';
+travelAdvisory.setAttribute('data-rao-travel-advisory', '');
+travelAdvisory.setAttribute('role', 'note');
+travelAdvisory.setAttribute('aria-label', 'U.S. Department of State travel advisory for Russia');
+travelAdvisory.innerHTML = `
+  <div class="container travel-advisory-inner">
+    <div class="travel-advisory-copy">
+      <span class="travel-advisory-icon" aria-hidden="true">!</span>
+      <span>
+        <strong>U.S. TRAVEL ADVISORY — RUSSIA: LEVEL 4 — DO NOT TRAVEL</strong>
+        <small>U.S. citizens, including U.S.–Russian dual nationals, face risks including wrongful detention and limited U.S. consular assistance.</small>
+      </span>
+    </div>
+    <a href="https://travel.state.gov/en/international-travel/travel-advisories/russia.html" target="_blank" rel="noopener noreferrer">
+      View State Department advisory <span aria-hidden="true">↗</span>
+    </a>
+  </div>`;
+
+const advisoryHeader = document.querySelector('[data-header]');
+if (advisoryHeader) {
+  document.body.insertBefore(travelAdvisory, advisoryHeader);
+} else {
+  document.body.insertBefore(travelAdvisory, document.body.firstChild);
+}
+
+const syncTravelAdvisoryHeight = () => {
+  const height = Math.ceil(travelAdvisory.getBoundingClientRect().height);
+  document.documentElement.style.setProperty('--travel-alert-height', `${height}px`);
+};
+syncTravelAdvisoryHeight();
+requestAnimationFrame(syncTravelAdvisoryHeight);
+window.addEventListener('resize', syncTravelAdvisoryHeight, { passive: true });
+if ('ResizeObserver' in window) {
+  new ResizeObserver(syncTravelAdvisoryHeight).observe(travelAdvisory);
+}
+
 const installSeal = (element, className = 'rao-brand-image') => {
   if (!element || element.querySelector(`.${className}`)) return;
   element.textContent = '';
