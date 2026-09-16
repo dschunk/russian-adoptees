@@ -1,6 +1,6 @@
 :root{--page-max:min(1120px,calc(100% - 40px));--page-navy:#0b1f33;--page-ink:#102033;--page-muted:#617083;--page-red:#a83a43;--page-gold:#c7a75d;--page-cream:#f7f4ed;--page-paper:#fffdf9;--page-line:rgba(16,32,51,.14)}
 body.inner-page{background:var(--page-paper)}
-.inner-page .site-header{position:sticky;top:0;background:rgba(255,253,249,.96);border-bottom:1px solid var(--page-line);backdrop-filter:blur(16px)}
+.inner-page .site-header{position:sticky;top:var(--travel-alert-height,0px);background:rgba(255,253,249,.96);border-bottom:1px solid var(--page-line);backdrop-filter:blur(16px)}
 .inner-page .site-header .brand,.inner-page .site-nav{color:var(--page-navy)}
 .inner-page .site-header .brand-mark{background:var(--page-navy);border-color:var(--page-navy);color:#fff}
 .inner-page .site-header .nav-cta{background:var(--page-navy);border-color:var(--page-navy);color:#fff}
