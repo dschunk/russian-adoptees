@@ -46,6 +46,8 @@ const CANONICAL_ROUTES = new Set([
   '/about',
   '/accessibility',
   '/administration',
+  '/case-manage',
+  '/case-status',
   '/citizenship',
   '/community',
   '/contact',
@@ -541,6 +543,206 @@ export default {
         return normalizeHtml(assetResponse, request, url);
       }
       return secureResponse(assetResponse, request);
+    }
+
+    if (url.pathname === '/api/orphanages') {
+      if (request.method !== 'GET') {
+        return json({ ok: false, error: 'Method not allowed.' }, 405, request);
+      }
+
+      const requestedPlace = clean(url.searchParams.get('place'), 160);
+      const radiusKm = Math.max(10, Math.min(320, Number(url.searchParams.get('radius') || 80)));
+      if (requestedPlace.length < 2 || !Number.isFinite(radiusKm)) {
+        return json({ ok: false, error: 'Enter a city, town, settlement, or region to search.' }, 400, request);
+      }
+
+      const cache = caches.default;
+      const cacheKey = new Request(url.toString(), { method: 'GET' });
+      const cached = await cache.match(cacheKey);
+      if (cached) return secureResponse(cached, request);
+
+      const interpretedPlace = normalizePlaceForGeocoding(requestedPlace);
+      const geocodeUrl = new URL('https://nominatim.openstreetmap.org/search');
+      geocodeUrl.searchParams.set('format', 'jsonv2');
+      geocodeUrl.searchParams.set('limit', '5');
+      geocodeUrl.searchParams.set('addressdetails', '1');
+      geocodeUrl.searchParams.set('countrycodes', 'ru');
+      geocodeUrl.searchParams.set('accept-language', 'en,ru');
+      geocodeUrl.searchParams.set('q', interpretedPlace + ', Russia');
+
+      let geocodes = [];
+      try {
+        const geocodeResponse = await fetch(geocodeUrl.toString(), {
+          headers: {
+            'user-agent': 'RussianAdopteesOrganization-OrphanageFinder/2.0 (+https://russianadoptees.com/contact)',
+            'referer': 'https://russianadoptees.com/orphanage-finder',
+            'accept': 'application/json'
+          }
+        });
+        if (!geocodeResponse.ok) throw new Error('Geocoding service unavailable');
+        geocodes = await geocodeResponse.json();
+      } catch (error) {
+        console.error('Orphanage locator geocoding failed', error?.message);
+        return json({ ok: false, error: 'The location service is temporarily unavailable. Please try again shortly.' }, 503, request);
+      }
+
+      const geocode = geocodes.find((item) => item?.lat && item?.lon) || null;
+      if (!geocode) {
+        return json({
+          ok: false,
+          error: 'We could not locate that place in Russia. Try the current city name, add the oblast/republic, or use a nearby larger city.'
+        }, 404, request);
+      }
+
+      const lat = Number(geocode.lat);
+      const lon = Number(geocode.lon);
+      const radiusMeters = Math.round(radiusKm * 1000);
+      const overpassQuery = `[out:json][timeout:25];
+(
+  nwr(around:${radiusMeters},${lat},${lon})["amenity"="social_facility"]["social_facility:for"~"child|juvenile|orphan",i];
+  nwr(around:${radiusMeters},${lat},${lon})["social_facility"="group_home"]["social_facility:for"~"child|juvenile|orphan",i];
+  nwr(around:${radiusMeters},${lat},${lon})["name"~"детский дом|дом ребёнка|дом ребенка|школа-интернат|детский дом-интернат|центр содействия семейному воспитанию|центр помощи детям|orphanage|baby home|children.?s home",i];
+);
+out center tags;`;
+
+      const overpassEndpoints = [
+        'https://overpass-api.de/api/interpreter',
+        'https://overpass.kumi.systems/api/interpreter'
+      ];
+
+      let overpassData = null;
+      for (const endpoint of overpassEndpoints) {
+        try {
+          const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+              'content-type': 'application/x-www-form-urlencoded;charset=UTF-8',
+              'user-agent': 'RussianAdopteesOrganization-OrphanageFinder/2.0 (+https://russianadoptees.com/contact)'
+            },
+            body: new URLSearchParams({ data: overpassQuery }).toString()
+          });
+          if (!response.ok) continue;
+          overpassData = await response.json();
+          break;
+        } catch (error) {
+          console.error('Overpass endpoint failed', endpoint, error?.message);
+        }
+      }
+
+      if (!overpassData) {
+        return json({
+          ok: false,
+          error: 'The nearby-institution map service is temporarily busy. Your location was found; please try the search again in a moment.'
+        }, 503, request);
+      }
+
+      const seen = new Set();
+      const results = (Array.isArray(overpassData.elements) ? overpassData.elements : [])
+        .map((element) => {
+          const itemLat = Number(element.lat ?? element.center?.lat);
+          const itemLon = Number(element.lon ?? element.center?.lon);
+          if (!Number.isFinite(itemLat) || !Number.isFinite(itemLon)) return null;
+          const key = `${element.type}:${element.id}`;
+          if (seen.has(key)) return null;
+          seen.add(key);
+          const tags = element.tags || {};
+          const name = clean(tags.name || tags['name:ru'] || tags['name:en'] || 'Unnamed child-welfare institution', 240);
+          const typeLabel = institutionTypeLabel(tags, name);
+          return {
+            id: key,
+            name,
+            distanceKm: Number(haversineKm(lat, lon, itemLat, itemLon).toFixed(1)),
+            typeLabel,
+            typeValue: canonicalInstitutionType(typeLabel),
+            address: clean(buildOsmAddress(tags), 400),
+            city: clean(tags['addr:city'] || tags['addr:town'] || tags['addr:village'], 160),
+            locationLabel: clean(geocode.display_name, 300),
+            operator: clean(tags.operator, 220),
+            phone: clean(tags.phone || tags['contact:phone'], 120),
+            website: safeHttp(tags.website || tags['contact:website']),
+            coordinates: `${itemLat.toFixed(5)}, ${itemLon.toFixed(5)}`,
+            osmType: element.type,
+            sourceUrl: `https://www.openstreetmap.org/${element.type}/${element.id}`
+          };
+        })
+        .filter(Boolean)
+        .sort((a, b) => a.distanceKm - b.distanceKm)
+        .slice(0, 80);
+
+      const payload = {
+        ok: true,
+        requestedPlace,
+        interpretedPlace,
+        radiusKm,
+        radiusMiles: Number((radiusKm * 0.621371).toFixed(0)),
+        location: {
+          displayName: clean(geocode.display_name, 400),
+          lat,
+          lon,
+          address: geocode.address || {}
+        },
+        results,
+        officialLeads: matchingOfficialLeads(geocode),
+        attribution: 'Nearby-facility data © OpenStreetMap contributors. Public map results describe current or recently mapped facilities and must be independently verified for historical adoption research.'
+      };
+
+      const locatorResponse = secureResponse(new Response(JSON.stringify(payload), {
+        status: 200,
+        headers: {
+          'content-type': 'application/json; charset=utf-8',
+          'cache-control': 'public, max-age=21600'
+        }
+      }), request);
+      await cache.put(cacheKey, locatorResponse.clone());
+      return locatorResponse;
+    }
+
+    if (url.pathname === '/api/case-status') {
+      if (request.method !== 'POST') {
+        return json({ ok: false, error: 'Method not allowed.' }, 405, request);
+      }
+      let body;
+      try {
+        body = await request.json();
+      } catch {
+        return json({ ok: false, error: 'Invalid request body.' }, 400, request);
+      }
+      const reference = cleanHeader(body.reference, 40).toUpperCase();
+      const email = cleanHeader(body.email, 254).toLowerCase();
+      if (!validCaseReference(reference) || !validEmail(email) || !env.CASE_STORE) {
+        return json({ ok: false, error: 'We could not find a case matching that reference and email.' }, 404, request);
+      }
+      const status = await internalJson(caseStub(env, reference), '/lookup', { emailHash: await sha256(email) });
+      if (!status?.ok) {
+        return json({ ok: false, error: 'We could not find a case matching that reference and email.' }, 404, request);
+      }
+      return json(status, 200, request);
+    }
+
+    if (url.pathname === '/api/case-admin') {
+      if (request.method !== 'POST') {
+        return json({ ok: false, error: 'Method not allowed.' }, 405, request);
+      }
+      let body;
+      try {
+        body = await request.json();
+      } catch {
+        return json({ ok: false, error: 'Invalid request body.' }, 400, request);
+      }
+      const reference = cleanHeader(body.reference, 40).toUpperCase();
+      const adminToken = cleanHeader(body.adminToken, 200);
+      const status = cleanHeader(body.status, 60);
+      const publicNote = clean(body.publicNote, 1000);
+      if (!validCaseReference(reference) || adminToken.length < 32 || !CASE_STATUSES.has(status) || !env.CASE_STORE) {
+        return json({ ok: false, error: 'Invalid case-management request.' }, 400, request);
+      }
+      const result = await internalJson(caseStub(env, reference), '/admin', {
+        adminTokenHash: await sha256(adminToken),
+        status,
+        publicNote
+      });
+      if (!result?.ok) return json({ ok: false, error: 'The case-management link is invalid or expired.' }, 403, request);
+      return json(result, 200, request);
     }
 
     if (url.pathname === '/api/health') {
