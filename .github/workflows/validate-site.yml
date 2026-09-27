@@ -25,6 +25,9 @@ jobs:
         run: |
           node --check public/app.js
           node --check public/contact.js
+          node --check public/orphanage-finder.js
+          node --check public/case-status.js
+          node --check public/case-manage.js
           node --check worker/index.js
 
       - name: Validate public pages and internal links
