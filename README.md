@@ -29,6 +29,7 @@ The Russian Adoptees Organization connects and supports adoptees from Russia and
 - `/press.html` — Press Office, media contact, and organization facts
 - `/contact.html` — Official inquiry form
 - `/resources.html` — Adoptee resource center
+- `/orphanage-finder.html` — Private Find My Orphanage research intake and lead-sheet builder
 - `/citizenship.html` — Russian citizenship, passport, and consular starting guide
 - `/law-updates.html` — Official-source Russian law and consular change monitor
 - `/policies.html` — Governance and policy summaries
@@ -60,7 +61,9 @@ The response policy includes Content Security Policy, frame protection, MIME-sni
 
 ## Contact API
 
-`POST /api/contact` is handled by `worker/index.js` and delivered through the Cloudflare Email Service binding.
+`POST /api/contact` and `POST /api/orphanage-case` are handled by `worker/index.js` and delivered through the Cloudflare Email Service binding.
+
+The orphanage research endpoint accepts structured, length-limited research clues, requires submitter authorization and privacy acknowledgements, does not accept document uploads, generates a case reference, and sends the case to the same private RAO delivery mailbox.
 
 The contact API:
 

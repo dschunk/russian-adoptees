@@ -1,12 +1,35 @@
 const ALLOWED_TOPICS = new Set([
   'Citizenship or passport question',
   'Russian records or documents',
+  'Orphanage or institution research',
   'Community or membership',
   'Volunteer interest',
   'Media inquiry',
   'Partnership or institutional inquiry',
   'Website or resource correction',
   'Other'
+]);
+
+const ORPHANAGE_TYPES = new Set([
+  'Unknown',
+  'Baby home / дом ребёнка',
+  "Children's home / детский дом",
+  'Boarding institution / школа-интернат',
+  'Medical or hospital placement',
+  'Shelter or social-rehabilitation institution',
+  'Other institution'
+]);
+
+const ORPHANAGE_RECORDS = new Set([
+  'Russian birth certificate',
+  'Adoption court decree',
+  'Adoption certificate',
+  'Orphanage or child-history report',
+  'Medical records',
+  'Russian passport or travel document',
+  'Adoption agency packet',
+  'Photographs with identifying clues',
+  'Other records'
 ]);
 
 const LEGACY_REDIRECTS = new Map([
@@ -27,6 +50,7 @@ const CANONICAL_ROUTES = new Set([
   '/documents',
   '/law-updates',
   '/news',
+  '/orphanage-finder',
   '/policies',
   '/press',
   '/privacy',
@@ -194,6 +218,11 @@ const json = (data, status = 200, request = null) => {
 
 const clean = (value, maxLength) => String(value ?? '').trim().slice(0, maxLength);
 const cleanHeader = (value, maxLength) => clean(value, maxLength).replace(/[\r\n]+/g, ' ');
+const cleanList = (value, allowedSet, maxItems = 20) =>
+  (Array.isArray(value) ? value : [])
+    .map((item) => clean(item, 300))
+    .filter((item) => item && (!allowedSet || allowedSet.has(item)))
+    .slice(0, maxItems);
 
 const validEmail = (value) => {
   if (value.length > 254) return false;
@@ -247,10 +276,228 @@ export default {
         ok: true,
         service: 'Russian Adoptees Organization',
         contactApi: true,
+        orphanageCaseApi: true,
         emailBindingConfigured: Boolean(env.EMAIL),
         contactDestinationConfigured: Boolean(env.CONTACT_DESTINATION),
         timestamp: new Date().toISOString()
       }, 200, request);
+    }
+
+    if (url.pathname === '/api/orphanage-case') {
+      if (request.method !== 'POST') {
+        return json({ ok: false, error: 'Method not allowed.' }, 405, request);
+      }
+
+      const origin = request.headers.get('origin');
+      if (origin) {
+        try {
+          if (new URL(origin).host !== url.host) {
+            return json({ ok: false, error: 'Invalid request origin.' }, 403, request);
+          }
+        } catch {
+          return json({ ok: false, error: 'Invalid request origin.' }, 403, request);
+        }
+      }
+
+      const contentType = request.headers.get('content-type') || '';
+      if (!contentType.toLowerCase().includes('application/json')) {
+        return json({ ok: false, error: 'Invalid request format.' }, 415, request);
+      }
+
+      const contentLength = Number(request.headers.get('content-length') || 0);
+      if (contentLength > 32000) {
+        return json({ ok: false, error: 'Request is too large.' }, 413, request);
+      }
+
+      let body;
+      try {
+        body = await request.json();
+      } catch {
+        return json({ ok: false, error: 'Invalid request body.' }, 400, request);
+      }
+
+      if (clean(body.website, 200)) {
+        return json({ ok: true, reference: 'RAO-OF-RECEIVED' }, 200, request);
+      }
+
+      const startedAt = Number(body.startedAt || 0);
+      if (startedAt > 0 && Date.now() - startedAt < 1500) {
+        return json({ ok: true, reference: 'RAO-OF-RECEIVED' }, 200, request);
+      }
+
+      const requesterName = cleanHeader(body.requesterName, 100);
+      const email = cleanHeader(body.email, 254).toLowerCase();
+      const requesterRole = cleanHeader(body.requesterRole, 100);
+      const authorized = body.authorized === true;
+      const privacyAccepted = body.privacy === true;
+      const noSensitiveNumbers = body.noSensitiveNumbers === true;
+
+      const birthName = clean(body.birthName, 160);
+      const birthNameCyrillic = clean(body.birthNameCyrillic, 160);
+      const dateOfBirth = clean(body.dateOfBirth, 60);
+      const birthPlace = clean(body.birthPlace, 160);
+      const birthRegion = clean(body.birthRegion, 160);
+      const formerPlaceName = clean(body.formerPlaceName, 160);
+      const identityNotes = clean(body.identityNotes, 1200);
+
+      const institutionName = clean(body.institutionName, 220);
+      const institutionNumber = clean(body.institutionNumber, 80);
+      const requestedInstitutionType = clean(body.institutionType, 100);
+      const institutionType = ORPHANAGE_TYPES.has(requestedInstitutionType) ? requestedInstitutionType : 'Unknown';
+      const institutionLocation = clean(body.institutionLocation, 180);
+      const yearsInCare = clean(body.yearsInCare, 100);
+      const addressClue = clean(body.addressClue, 240);
+      const placeNotes = clean(body.placeNotes, 1800);
+
+      const directorName = clean(body.directorName, 180);
+      const doctorName = clean(body.doctorName, 180);
+      const staffNames = clean(body.staffNames, 500);
+      const officialNames = clean(body.officialNames, 300);
+      const records = cleanList(body.records, ORPHANAGE_RECORDS, 12);
+      const documentClues = clean(body.documentClues, 2000);
+      const evidenceNotes = clean(body.evidenceNotes, 1500);
+
+      const adoptionYear = clean(body.adoptionYear, 60);
+      const adoptionAge = clean(body.adoptionAge, 80);
+      const adoptionCourt = clean(body.adoptionCourt, 220);
+      const adoptionAgency = clean(body.adoptionAgency, 220);
+      const facilitatorName = clean(body.facilitatorName, 220);
+      const adoptiveDestination = clean(body.adoptiveDestination, 180);
+      const adoptionNotes = clean(body.adoptionNotes, 1800);
+      const researchQueries = cleanList(body.researchQueries, null, 8);
+      const researchRoutes = cleanList(body.researchRoutes, null, 8);
+
+      const locatorCluePresent = Boolean(
+        birthPlace || birthRegion || institutionName || institutionNumber || institutionLocation ||
+        directorName || doctorName || adoptionCourt || adoptionAgency || documentClues || placeNotes
+      );
+
+      if (
+        requesterName.length < 2 ||
+        !validEmail(email) ||
+        !authorized ||
+        !privacyAccepted ||
+        !noSensitiveNumbers ||
+        !locatorCluePresent
+      ) {
+        return json({
+          ok: false,
+          error: 'Please complete the required fields and include at least one useful research clue.'
+        }, 400, request);
+      }
+
+      if (!env.CONTACT_DESTINATION) {
+        return json({
+          ok: false,
+          error: 'RAO email delivery is being activated. Please use the general contact page for now.'
+        }, 503, request);
+      }
+
+      const dateCode = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+      const reference = `RAO-OF-${dateCode}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
+      const subjectLead = cleanHeader(birthName || institutionName || birthPlace || 'New research case', 80);
+
+      const section = (title, rows) => {
+        const rendered = rows
+          .filter(([, value]) => value && (!Array.isArray(value) || value.length))
+          .map(([label, value]) => `${label}: ${Array.isArray(value) ? value.join('; ') : value}`);
+        return [title, '-'.repeat(title.length), ...(rendered.length ? rendered : ['No information provided.']), ''];
+      };
+
+      const emailText = [
+        'RUSSIAN ADOPTEES ORGANIZATION',
+        'Find My Orphanage — Research Case',
+        '',
+        `Case reference: ${reference}`,
+        `Submitted: ${new Date().toISOString()}`,
+        '',
+        ...section('SUBMITTER', [
+          ['Name', requesterName],
+          ['Reply email', email],
+          ['Role', requesterRole]
+        ]),
+        ...section('RUSSIAN IDENTITY & PLACE', [
+          ['Birth / pre-adoption name', birthName],
+          ['Cyrillic name', birthNameCyrillic],
+          ['Date of birth / approximate date', dateOfBirth],
+          ['Birthplace', birthPlace],
+          ['Region', birthRegion],
+          ['Former / alternate place name', formerPlaceName],
+          ['Other identity clues', identityNotes]
+        ]),
+        ...section('INSTITUTION', [
+          ['Institution name', institutionName],
+          ['Number / designation', institutionNumber],
+          ['Type', institutionType],
+          ['Location', institutionLocation],
+          ['Approximate years in care', yearsInCare],
+          ['Address clue', addressClue],
+          ['Place / photograph / landmark clues', placeNotes]
+        ]),
+        ...section('PEOPLE & RECORDS', [
+          ['Director', directorName],
+          ['Doctor / medical director', doctorName],
+          ['Caregiver / teacher / staff', staffNames],
+          ['Social worker / guardianship official', officialNames],
+          ['Records on hand', records],
+          ['Short document wording / stamps / phrases', documentClues],
+          ['Clue provenance / source notes', evidenceNotes]
+        ]),
+        ...section('ADOPTION PATH', [
+          ['Adoption year', adoptionYear],
+          ['Age at adoption', adoptionAge],
+          ['Court / jurisdiction', adoptionCourt],
+          ['Adoption agency', adoptionAgency],
+          ['Facilitator / translator / coordinator', facilitatorName],
+          ['Adoptive destination', adoptiveDestination],
+          ['Timeline / other adoption clues', adoptionNotes]
+        ]),
+        ...section('INVESTIGATOR SEARCH LEADS', researchQueries.map((query, index) => [`Lead ${index + 1}`, query])),
+        ...section('RECOMMENDED RESEARCH ROUTES', researchRoutes.map((route, index) => [`Route ${index + 1}`, route])),
+        'PRIVACY / HANDLING',
+        '------------------',
+        'The submitter affirmed that they are the adoptee or have permission to submit these details.',
+        'The submitter affirmed that they did not include highly sensitive credentials or complete passport/document numbers.',
+        'This case was submitted through the private RAO research intake and must not be published as a public directory entry.',
+        '',
+        'Research standard: Search strings and possible institutions are leads only. Do not describe an institution as a verified match until supporting evidence has been reviewed.',
+        '',
+        'Source: https://russianadoptees.com/orphanage-finder'
+      ].join('\n');
+
+      try {
+        await env.EMAIL.send({
+          to: env.CONTACT_DESTINATION,
+          from: {
+            email: 'contact@russianadoptees.com',
+            name: 'Russian Adoptees Organization'
+          },
+          replyTo: {
+            email,
+            name: requesterName
+          },
+          subject: `[RAO Orphanage Finder] ${reference}: ${subjectLead}`,
+          text: emailText
+        });
+
+        return json({
+          ok: true,
+          reference,
+          message: 'Your orphanage research case has been received by the Russian Adoptees Organization.'
+        }, 200, request);
+      } catch (error) {
+        console.error('RAO orphanage research email failed', error?.code, error?.message);
+
+        if (error?.code === 'E_RATE_LIMIT_EXCEEDED' || error?.code === 'E_DAILY_LIMIT_EXCEEDED') {
+          return json({ ok: false, error: 'The research intake is temporarily busy. Please try again later.' }, 429, request);
+        }
+
+        if (error?.code === 'E_SENDER_NOT_VERIFIED' || error?.code === 'E_SENDER_DOMAIN_NOT_AVAILABLE') {
+          return json({ ok: false, error: 'RAO email delivery is being activated. Please use the general contact page for now.' }, 503, request);
+        }
+
+        return json({ ok: false, error: 'We could not send your research case right now. Please use the general contact page.' }, 500, request);
+      }
     }
 
     if (url.pathname !== '/api/contact') {
