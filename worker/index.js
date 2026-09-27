@@ -355,6 +355,7 @@ export default {
       const officialNames = clean(body.officialNames, 300);
       const records = cleanList(body.records, ORPHANAGE_RECORDS, 12);
       const documentClues = clean(body.documentClues, 2000);
+      const evidenceNotes = clean(body.evidenceNotes, 1500);
 
       const adoptionYear = clean(body.adoptionYear, 60);
       const adoptionAge = clean(body.adoptionAge, 80);
@@ -439,7 +440,8 @@ export default {
           ['Caregiver / teacher / staff', staffNames],
           ['Social worker / guardianship official', officialNames],
           ['Records on hand', records],
-          ['Short document wording / stamps / phrases', documentClues]
+          ['Short document wording / stamps / phrases', documentClues],
+          ['Clue provenance / source notes', evidenceNotes]
         ]),
         ...section('ADOPTION PATH', [
           ['Adoption year', adoptionYear],
