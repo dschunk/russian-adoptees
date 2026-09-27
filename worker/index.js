@@ -1,3 +1,5 @@
+import { DurableObject } from "cloudflare:workers";
+
 const ALLOWED_TOPICS = new Set([
   'Citizenship or passport question',
   'Russian records or documents',
@@ -58,6 +60,140 @@ const CANONICAL_ROUTES = new Set([
 ]);
 
 const SOCIAL_IMAGE = 'https://russianadoptees.com/assets/rao-social.jpg';
+
+const CASE_STATUSES = new Set([
+  'Received',
+  'Under review',
+  'Researching',
+  'Waiting for information',
+  'Possible match found',
+  'Resolved',
+  'Closed'
+]);
+
+const HISTORICAL_PLACE_ALIASES = new Map([
+  ['leningrad', 'Saint Petersburg'],
+  ['ленинград', 'Санкт-Петербург'],
+  ['gorky', 'Nizhny Novgorod'],
+  ['горький', 'Нижний Новгород'],
+  ['sverdlovsk', 'Yekaterinburg'],
+  ['свердловск', 'Екатеринбург'],
+  ['kuybyshev', 'Samara'],
+  ['kuibyshev', 'Samara'],
+  ['куйбышев', 'Самара'],
+  ['kalinin', 'Tver'],
+  ['калинин', 'Тверь'],
+  ['ordzhonikidze', 'Vladikavkaz'],
+  ['орджоникидзе', 'Владикавказ']
+]);
+
+const OFFICIAL_INSTITUTION_LEADS = [
+  {
+    regions: ['saint petersburg', 'санкт-петербург'],
+    city: 'Peterhof',
+    name: 'Дом социального обслуживания «Первый»',
+    address: '198517, Санкт-Петербург, Петергоф, улица Воровского, дом 12',
+    director: 'Асикритов Валерий Николаевич',
+    phone: '450-70-39',
+    sourceLabel: 'St. Petersburg government',
+    sourceUrl: 'https://www.gov.spb.ru/gov/otrasl/trud/podvedomstvennye-uchrezhdeniya/',
+    notes: 'Current public institution listing; historical names and functions should be checked for the adoption year.'
+  },
+  {
+    regions: ['saint petersburg', 'санкт-петербург'],
+    city: 'Peterhof',
+    name: 'Детский дом социального обслуживания «Солнечный»',
+    address: '198504, Санкт-Петербург, Петергоф, улица Петергофская, дом 4/2',
+    director: 'Дерябина Ирина Викторовна',
+    phone: '450-50-83',
+    sourceLabel: 'St. Petersburg government',
+    sourceUrl: 'https://www.gov.spb.ru/gov/otrasl/trud/podvedomstvennye-uchrezhdeniya/',
+    notes: 'Current public institution listing; historical names and functions should be checked for the adoption year.'
+  },
+  {
+    regions: ['saint petersburg', 'санкт-петербург'],
+    city: 'Ushkovo',
+    name: 'Дом социального обслуживания «Парус»',
+    address: '197720, Санкт-Петербург, посёлок Ушково, Приморское шоссе, дом 617, литера О',
+    sourceLabel: 'St. Petersburg government',
+    sourceUrl: 'https://www.gov.spb.ru/gov/otrasl/trud/podvedomstvennye-uchrezhdeniya/',
+    notes: 'Current public institution listing; historical names and functions should be checked for the adoption year.'
+  },
+  {
+    regions: ['tver oblast', 'тверская область'],
+    city: 'Kimry',
+    name: 'Кимрская школа-интернат',
+    address: '171505, Тверская область, г. Кимры, ул. Парковая, д. 3',
+    sourceLabel: 'Russian Ministry of Education',
+    sourceUrl: 'https://edu.gov.ru/activity/main_activities/limited_health/list_of_organizations/',
+    notes: 'Listed as an institution for children without parental care; verify the institution name and status for the relevant year.'
+  },
+  {
+    regions: ['tver oblast', 'тверская область'],
+    city: 'Ploskosh',
+    name: 'Плоскошская школа-интернат',
+    address: '172870, Тверская область, Торопецкий р-н, п. Плоскошь, ул. Советская, д. 19',
+    sourceLabel: 'Russian Ministry of Education',
+    sourceUrl: 'https://edu.gov.ru/activity/main_activities/limited_health/list_of_organizations/',
+    notes: 'Listed as a boarding institution; verify adoption-era function and archival successor.'
+  },
+  {
+    regions: ['tver oblast', 'тверская область'],
+    city: 'Emmaus',
+    name: 'Эммаусская школа-интернат',
+    address: '170530, Тверская область, Калининский р-н, н.п. Эммаусская школа-интернат, д. 12',
+    sourceLabel: 'Russian Ministry of Education',
+    sourceUrl: 'https://edu.gov.ru/activity/main_activities/limited_health/list_of_organizations/',
+    notes: 'Listed as an institution for children without parental care; verify adoption-era function and name.'
+  },
+  {
+    regions: ['rostov oblast', 'ростовская область'],
+    city: 'Azov',
+    name: 'Детский дом г. Азова',
+    director: 'Байер Елена Александровна',
+    phone: '(863-42) 4-02-15',
+    sourceLabel: 'Regional education directory',
+    sourceUrl: 'https://remroo.profiedu.ru/site/section?id=43',
+    notes: 'Public staff directory entry. Staff names are time-sensitive and should not be assumed to match an earlier adoption year.'
+  },
+  {
+    regions: ['rostov oblast', 'ростовская область'],
+    city: 'Bataysk',
+    name: 'Детский дом г. Батайска',
+    director: 'Пащенко Ольга Петровна',
+    phone: '(863-54) 2-25-66',
+    sourceLabel: 'Regional education directory',
+    sourceUrl: 'https://remroo.profiedu.ru/site/section?id=43',
+    notes: 'Public staff directory entry. Staff names are time-sensitive and should not be assumed to match an earlier adoption year.'
+  },
+  {
+    regions: ['moscow', 'москва'],
+    city: 'Moscow',
+    name: 'ЦССВ «Наш дом»',
+    address: '121309, Москва, ул. Новозаводская, д. 19А, стр. 2',
+    sourceLabel: 'Наставники child-welfare directory',
+    sourceUrl: 'https://nastavniki.org/detskie-doma/',
+    notes: 'Current child-welfare directory listing; predecessor institutions and historical names may differ.'
+  },
+  {
+    regions: ['moscow', 'москва'],
+    city: 'Moscow',
+    name: 'ЦССВ «Каховские ромашки»',
+    address: '117303, Москва, ул. Каховка, д. 2, стр. 3',
+    sourceLabel: 'Наставники child-welfare directory',
+    sourceUrl: 'https://nastavniki.org/detskie-doma/',
+    notes: 'Current child-welfare directory listing; predecessor institutions and historical names may differ.'
+  },
+  {
+    regions: ['moscow', 'москва'],
+    city: 'Moscow',
+    name: 'ЦССВ «Вертикаль»',
+    address: '117638, Москва, Криворожский проезд, д. 1, стр. 1',
+    sourceLabel: 'Наставники child-welfare directory',
+    sourceUrl: 'https://nastavniki.org/detskie-doma/',
+    notes: 'Current child-welfare directory listing; predecessor institutions and historical names may differ.'
+  }
+];
 
 const SECURITY_HEADERS = {
   'x-content-type-options': 'nosniff',
@@ -228,6 +364,146 @@ const validEmail = (value) => {
   if (value.length > 254) return false;
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 };
+
+const sha256 = async (value) => {
+  const bytes = new TextEncoder().encode(String(value));
+  const digest = await crypto.subtle.digest('SHA-256', bytes);
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
+};
+
+const validCaseReference = (value) => /^RAO-OF-\d{8}-[A-F0-9]{8}$/.test(String(value || '').trim().toUpperCase());
+
+const caseStub = (env, reference) => {
+  const id = env.CASE_STORE.idFromName(reference);
+  return env.CASE_STORE.get(id);
+};
+
+const internalJson = async (stub, path, data) => {
+  const response = await stub.fetch('https://case.internal' + path, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+  return response.json();
+};
+
+const haversineKm = (lat1, lon1, lat2, lon2) => {
+  const toRad = (degrees) => degrees * Math.PI / 180;
+  const earthKm = 6371.0088;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return earthKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
+
+const safeHttp = (value) => {
+  try {
+    const parsed = new URL(String(value || ''));
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? parsed.toString() : '';
+  } catch {
+    return '';
+  }
+};
+
+const buildOsmAddress = (tags = {}) => {
+  if (tags['addr:full']) return tags['addr:full'];
+  const street = [tags['addr:street'], tags['addr:housenumber']].filter(Boolean).join(', ');
+  return [
+    tags['addr:postcode'],
+    tags['addr:region'],
+    tags['addr:city'] || tags['addr:town'] || tags['addr:village'],
+    street
+  ].filter(Boolean).join(', ');
+};
+
+const institutionTypeLabel = (tags = {}, name = '') => {
+  const lower = String(name).toLowerCase();
+  if (lower.includes('дом ребёнка') || lower.includes('дом ребенка') || lower.includes('baby home')) return 'Baby home';
+  if (lower.includes('детский дом') || lower.includes('orphanage') || lower.includes("children's home")) return "Children's home";
+  if (lower.includes('школа-интернат') || lower.includes('интернат')) return 'Boarding institution';
+  if (lower.includes('центр содействия') || lower.includes('центр помощи детям')) return 'Child-welfare center';
+  if (tags.social_facility === 'group_home') return 'Residential social facility';
+  return 'Child-welfare institution';
+};
+
+const canonicalInstitutionType = (label) => {
+  if (label === 'Baby home') return 'Baby home / дом ребёнка';
+  if (label === "Children's home") return "Children's home / детский дом";
+  if (label === 'Boarding institution') return 'Boarding institution / школа-интернат';
+  return 'Other institution';
+};
+
+const normalizePlaceForGeocoding = (input) => {
+  const raw = clean(input, 160);
+  const lower = raw.toLowerCase();
+  return HISTORICAL_PLACE_ALIASES.get(lower) || raw;
+};
+
+const matchingOfficialLeads = (geocode) => {
+  const searchable = [
+    geocode?.display_name,
+    geocode?.address?.state,
+    geocode?.address?.region,
+    geocode?.address?.city,
+    geocode?.address?.town,
+    geocode?.address?.county
+  ].filter(Boolean).join(' ').toLowerCase();
+  return OFFICIAL_INSTITUTION_LEADS.filter((lead) =>
+    lead.regions.some((region) => searchable.includes(region))
+  ).map(({ regions, ...lead }) => lead);
+};
+
+export class CaseStore extends DurableObject {
+  constructor(ctx, env) {
+    super(ctx, env);
+    this.ctx = ctx;
+  }
+
+  async fetch(request) {
+    const url = new URL(request.url);
+    let body = {};
+    try {
+      body = await request.json();
+    } catch {
+      return new Response(JSON.stringify({ ok: false }), { status: 400, headers: { 'content-type': 'application/json' } });
+    }
+
+    if (url.pathname === '/create') {
+      const existing = await this.ctx.storage.get('case');
+      if (!existing) await this.ctx.storage.put('case', body);
+      return Response.json({ ok: true });
+    }
+
+    const record = await this.ctx.storage.get('case');
+    if (!record) return Response.json({ ok: false, found: false }, { status: 404 });
+
+    if (url.pathname === '/lookup') {
+      if (body.emailHash !== record.emailHash) return Response.json({ ok: false, found: false }, { status: 404 });
+      return Response.json({
+        ok: true,
+        found: true,
+        reference: record.reference,
+        submittedAt: record.submittedAt,
+        status: record.status,
+        publicNote: record.publicNote || '',
+        lastUpdatedAt: record.lastUpdatedAt || record.submittedAt
+      });
+    }
+
+    if (url.pathname === '/admin') {
+      if (body.adminTokenHash !== record.adminTokenHash) return Response.json({ ok: false }, { status: 403 });
+      if (!CASE_STATUSES.has(body.status)) return Response.json({ ok: false }, { status: 400 });
+      record.status = body.status;
+      record.publicNote = clean(body.publicNote, 1000);
+      record.lastUpdatedAt = new Date().toISOString();
+      await this.ctx.storage.put('case', record);
+      return Response.json({ ok: true, status: record.status, lastUpdatedAt: record.lastUpdatedAt });
+    }
+
+    return Response.json({ ok: false }, { status: 404 });
+  }
+}
 
 export default {
   async fetch(request, env) {
