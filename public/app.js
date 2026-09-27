@@ -208,6 +208,7 @@ document.querySelectorAll('.footer-links').forEach((footerLinks) => {
     ['/about', 'About'],
     ['/administration', 'Administration'],
     ['/resources', 'Resources'],
+    ['/orphanage-finder', 'Find My Orphanage'],
     ['/policies', 'Policies'],
     ['/documents', 'Documents'],
     ['/community', 'Community'],
