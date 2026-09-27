@@ -33,5 +33,23 @@
         "contact@russianadoptees.com"
       ]
     }
-  ]
+  ],
+  "previews": {
+    "durable_objects": {
+      "bindings": [
+        {
+          "name": "CASE_STORE",
+          "class_name": "CaseStore"
+        }
+      ]
+    },
+    "send_email": [
+      {
+        "name": "EMAIL",
+        "allowed_sender_addresses": [
+          "contact@russianadoptees.com"
+        ]
+      }
+    ]
+  }
 }
