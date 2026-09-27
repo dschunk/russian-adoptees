@@ -29,7 +29,9 @@ The Russian Adoptees Organization connects and supports adoptees from Russia and
 - `/press.html` — Press Office, media contact, and organization facts
 - `/contact.html` — Official inquiry form
 - `/resources.html` — Adoptee resource center
-- `/orphanage-finder.html` — Private Find My Orphanage research intake and lead-sheet builder
+- `/orphanage-finder.html` — Location-first Find My Orphanage radius search, research intake, and lead-sheet builder
+- `/case-status.html` — Submitter case-status lookup
+- `/case-manage.html` — noindex case-specific staff status-management page
 - `/citizenship.html` — Russian citizenship, passport, and consular starting guide
 - `/law-updates.html` — Official-source Russian law and consular change monitor
 - `/policies.html` — Governance and policy summaries
@@ -63,7 +65,7 @@ The response policy includes Content Security Policy, frame protection, MIME-sni
 
 `POST /api/contact` and `POST /api/orphanage-case` are handled by `worker/index.js` and delivered through the Cloudflare Email Service binding.
 
-The orphanage research endpoint accepts structured, length-limited research clues, requires submitter authorization and privacy acknowledgements, does not accept document uploads, generates a case reference, and sends the case to the same private RAO delivery mailbox.
+The orphanage service now has three layers: an instant location search using OpenStreetMap/Nominatim/Overpass public data; a structured, length-limited research intake that does not accept document uploads; and a minimal Durable Object case-status record. New submissions generate a case reference, notify the private RAO delivery mailbox, and include a case-specific staff management link. Public case lookup requires the reference plus the submitter email and stores only an email hash rather than the plain address in the case-status object.
 
 The contact API:
 
