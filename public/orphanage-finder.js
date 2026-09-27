@@ -376,10 +376,14 @@ const renderLocatorResults = (payload) => {
 
   if (locatorSummary) {
     locatorSummary.hidden = false;
-    locatorSummary.innerHTML = '<strong>' + escapeHtml(payload.location?.displayName || 'Location found') + '</strong>' +
-      '<span>Searching within ' + escapeHtml(payload.radiusKm) + ' km (' + escapeHtml(payload.radiusMiles) +
-      ' mi). ' + escapeHtml(latestLocatorResults.length) + ' nearby public-map candidate' +
-      (latestLocatorResults.length === 1 ? '' : 's') + ' found.</span>';
+    const radiusText = payload.radiusKm
+      ? 'Searching within ' + escapeHtml(payload.radiusKm) + ' km (' + escapeHtml(payload.radiusMiles) + ' mi). '
+      : '';
+    locatorSummary.innerHTML = '<strong>' + escapeHtml(payload.location?.displayName || latestLocatorPlace || 'Research leads') + '</strong>' +
+      '<span>' + radiusText + escapeHtml(latestLocatorResults.length) + ' nearby public-map candidate' +
+      (latestLocatorResults.length === 1 ? '' : 's') + ' found' +
+      (latestOfficialLeads.length ? ' · ' + escapeHtml(latestOfficialLeads.length) + ' RAO-curated web lead' + (latestOfficialLeads.length === 1 ? '' : 's') : '') +
+      '.</span>';
   }
 
   if (locatorResults) {
@@ -502,23 +506,63 @@ locatorForm?.addEventListener('submit', async (event) => {
   if (locatorOfficialLeads) locatorOfficialLeads.hidden = true;
 
   try {
-    const response = await fetch('/api/orphanages?place=' + encodeURIComponent(place) + '&radius=' + encodeURIComponent(radius), {
+    const curatedPromise = fetch('/api/orphanage-leads?place=' + encodeURIComponent(place), {
       headers: { accept: 'application/json' }
-    });
+    }).then(async (response) => {
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data.ok !== true) return null;
+      if (Array.isArray(data.officialLeads) && data.officialLeads.length) {
+        renderLocatorResults({
+          ok: true,
+          location: { displayName: place },
+          results: [],
+          officialLeads: data.officialLeads
+        });
+        setLocatorStatus(
+          'Found ' + data.officialLeads.length + ' RAO-curated lead' +
+          (data.officialLeads.length === 1 ? '' : 's') +
+          '. Checking the live radius map now…',
+          'success'
+        );
+      }
+      return data;
+    }).catch(() => null);
+
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => controller.abort(), 12000);
+    let response;
+    try {
+      response = await fetch('/api/orphanages?place=' + encodeURIComponent(place) + '&radius=' + encodeURIComponent(radius), {
+        headers: { accept: 'application/json' },
+        signal: controller.signal
+      });
+    } finally {
+      window.clearTimeout(timer);
+    }
+    await curatedPromise;
+
     const data = await response.json().catch(() => ({}));
     if (!response.ok || data.ok !== true) throw new Error(data.error || 'We could not search that location right now.');
     renderLocatorResults(data);
-    setLocatorStatus(
-      data.results?.length
-        ? 'Search complete. Review the closest candidates below; distance does not prove an adoption-era match.'
-        : 'Location found, but no current public-map candidates were returned. Try a wider radius or use the RAO research case.',
-      data.results?.length ? 'success' : ''
-    );
+    if (data.warning) {
+      setLocatorStatus(data.warning, data.officialLeads?.length ? 'success' : '');
+    } else {
+      setLocatorStatus(
+        data.results?.length
+          ? 'Search complete. Review the closest candidates below; distance does not prove an adoption-era match.'
+          : 'Location found. No current public-map candidates were returned, but any RAO-curated research leads are shown below.',
+        data.results?.length || data.officialLeads?.length ? 'success' : ''
+      );
+    }
 
     const birthPlaceField = finderForm?.elements.namedItem('birthPlace');
     if (birthPlaceField && !String(birthPlaceField.value || '').trim()) birthPlaceField.value = place;
   } catch (error) {
-    setLocatorStatus(error.message || 'We could not search that location right now.', 'error');
+    if (error?.name === 'AbortError') {
+      setLocatorStatus('The live map search took too long and was stopped. Any RAO-curated leads found above are still usable; try again or widen/narrow the radius.', 'error');
+    } else {
+      setLocatorStatus(error.message || 'We could not search that location right now.', 'error');
+    }
   } finally {
     if (locatorSubmit) {
       locatorSubmit.disabled = false;
