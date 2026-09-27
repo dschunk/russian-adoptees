@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <meta name="theme-color" content="#0b1f33">
+  <link rel="icon" type="image/svg+xml" href="/assets/rao-favicon.svg?v=20260829-7">
+  <link rel="manifest" href="/site.webmanifest">
+  <title>Manage Research Case | Russian Adoptees Organization</title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/pages.css">
+  <link rel="stylesheet" href="/case.css?v=20260927-1">
+  <link rel="stylesheet" href="/branding.css?v=20260829-7">
+  <script src="/app.js?v=20260830-1" defer></script>
+  <script src="/case-manage.js?v=20260927-1" defer></script>
+</head>
+<body class="inner-page case-page">
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-header scrolled" data-header><div class="container header-inner">
+  <a class="brand" href="/"><span class="brand-mark"><span>RAO</span></span><span class="brand-copy"><strong>Russian Adoptees</strong><small>Organization</small></span></a>
+  <button class="menu-toggle" type="button" aria-label="Open navigation" aria-expanded="false" data-menu-toggle><span></span><span></span><span></span></button>
+  <nav class="site-nav" data-nav></nav>
+</div></header>
+<main id="main">
+  <section class="page-hero"><div class="container"><p class="eyebrow">Staff case management</p><h1>Update research case</h1><p class="lede">This page is intended for RAO staff using the private case-specific management link sent with a new request.</p></div></section>
+  <div class="case-shell">
+    <section class="case-card">
+      <h2 id="manage-case-title">Research case</h2>
+      <div class="staff-warning"><strong>Internal use:</strong> The token in the email link authorizes changes to this case. Do not share the full management link publicly.</div>
+      <form class="case-form" id="case-manage-form">
+        <label><span>Status visible to submitter</span><select id="manage-status" required>
+          <option>Received</option>
+          <option>Under review</option>
+          <option>Researching</option>
+          <option>Waiting for information</option>
+          <option>Possible match found</option>
+          <option>Resolved</option>
+          <option>Closed</option>
+        </select></label>
+        <label><span>Public case note</span><textarea id="manage-note" rows="7" maxlength="1000" placeholder="Example: We are researching institutions in Smolensk Oblast and comparing the director name supplied in your records."></textarea></label>
+        <button class="button button-primary" type="submit" id="manage-submit">Save case update</button>
+        <p class="case-status-message" id="manage-message" aria-live="polite"></p>
+      </form>
+    </section>
+  </div>
+</main>
+<footer class="site-footer"><div class="container footer-top"><div class="footer-brand"><div class="brand-mark footer-mark"><span>RAO</span></div><div><strong>Russian Adoptees Organization</strong></div></div><div class="footer-links"></div></div><div class="container footer-bottom"><span>© <span data-year></span> Russian Adoptees Organization.</span></div></footer>
+</body>
+</html>

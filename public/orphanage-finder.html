@@ -19,10 +19,10 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="/pages.css">
-  <link rel="stylesheet" href="/orphanage-finder.css?v=20260927-1">
+  <link rel="stylesheet" href="/orphanage-finder.css?v=20260927-2">
   <link rel="stylesheet" href="/branding.css?v=20260829-7">
   <script src="/app.js?v=20260830-1" defer></script>
-  <script src="/orphanage-finder.js?v=20260927-1" defer></script>
+  <script src="/orphanage-finder.js?v=20260927-2" defer></script>
 </head>
 <body class="inner-page finder-page">
 <a class="skip-link" href="#main">Skip to content</a>
@@ -39,10 +39,10 @@
       <div class="breadcrumbs"><a href="/">Home</a><span>›</span><a href="/resources">Resources</a><span>›</span><span>Find My Orphanage</span></div>
       <p class="eyebrow">RAO Research Desk</p>
       <h1>Find My Orphanage</h1>
-      <p class="lede">You may remember a city but not a number. A director's surname but not the institution. A Russian word on an old report. A doctor's name. A photograph. A court. An adoption agency. Start with whatever you have.</p>
+      <p class="lede">Start with where you were born. RAO will search for nearby orphanages, baby homes, children's homes, boarding institutions, and related facilities, then help you turn the strongest candidates into a research case.</p>
       <div class="finder-hero-actions">
-        <a class="button button-primary" href="#start">Build my research case</a>
-        <a class="button button-secondary" href="#how-it-works">How it works</a>
+        <a class="button button-primary" href="#instant-search">Find orphanages near my birthplace</a>
+        <a class="button button-secondary" href="/case-status">Check a case</a>
       </div>
     </div>
   </section>
@@ -55,7 +55,42 @@
     </div>
   </section>
 
-  <section class="page-section" id="how-it-works">
+  <section class="page-section finder-search-section" id="instant-search">
+    <div class="section-wrap">
+      <div class="finder-search-head">
+        <div>
+          <p class="eyebrow dark">Instant location search</p>
+          <h2>Where were you born?</h2>
+          <p>Enter a Russian city, town, settlement, oblast, or historical place name. We will locate it and return nearby institutions from live public map data, plus RAO-curated official web leads when available.</p>
+        </div>
+        <a class="case-lookup-link" href="/case-status">Already submitted a case? Check status →</a>
+      </div>
+      <form id="instant-orphanage-search" class="instant-search-form">
+        <label>
+          <span>Birth city / town / region</span>
+          <input type="text" id="locator-place" name="place" maxlength="160" required placeholder="Example: Smolensk, Leningrad, Tver, Yekaterinburg">
+        </label>
+        <label>
+          <span>Search radius</span>
+          <select id="locator-radius" name="radius">
+            <option value="25">25 km / 16 mi</option>
+            <option value="50">50 km / 31 mi</option>
+            <option value="80" selected>80 km / 50 mi</option>
+            <option value="160">160 km / 100 mi</option>
+            <option value="320">320 km / 200 mi</option>
+          </select>
+        </label>
+        <button class="button button-primary" id="locator-submit" type="submit">Find nearby institutions</button>
+      </form>
+      <p class="instant-search-status" id="locator-status" aria-live="polite">No account or case submission is required to search.</p>
+      <div id="locator-summary" class="locator-summary" hidden></div>
+      <div id="locator-results" class="locator-results" hidden></div>
+      <div id="locator-official-leads" class="locator-official-leads" hidden></div>
+      <div class="locator-attribution">Location and nearby-facility results use <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">© OpenStreetMap contributors</a>. Current map listings are research leads, not proof that a facility operated under the same name or function at the time of an adoption.</div>
+    </div>
+  </section>
+
+  <section class="page-section soft" id="how-it-works">
     <div class="section-wrap">
       <div class="finder-intro-grid">
         <div>
@@ -250,7 +285,7 @@
           <h2>RAO has your clues.</h2>
           <p>Your case reference is <strong id="case-reference"></strong>. Save this number if you contact us about the case later.</p>
           <p>Submission does not mean an institution has been identified. RAO will review the evidence, research likely institutions and jurisdictions, and distinguish verified information from possible leads.</p>
-          <div class="success-actions"><a class="button button-primary" href="/resources">Return to resources</a><a class="button button-secondary" href="/contact?topic=Russian%20records%20or%20documents">Contact RAO</a></div>
+          <div class="success-actions"><a class="button button-primary" id="case-status-link" href="/case-status">Check case status</a><a class="button button-secondary" href="/resources">Return to resources</a><a class="button button-secondary" href="/contact?topic=Russian%20records%20or%20documents">Contact RAO</a></div>
         </section>
       </div>
     </div>

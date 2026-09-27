@@ -13,6 +13,7 @@ const finderStatus = document.querySelector('#finder-status');
 const finderSuccess = document.querySelector('#finder-success');
 const finderShell = document.querySelector('.finder-shell');
 const caseReference = document.querySelector('#case-reference');
+const caseStatusLink = document.querySelector('#case-status-link');
 const finderStartedAt = Date.now();
 
 const stepNames = ['About you', 'Russian identity', 'Institution', 'People & records', 'Adoption path', 'Review'];
@@ -305,6 +306,7 @@ finderForm?.addEventListener('submit', async (event) => {
     if (!response.ok || data.ok !== true) throw new Error(data.error || 'We could not send your research case right now.');
 
     if (caseReference) caseReference.textContent = data.reference || 'RAO case';
+    if (caseStatusLink && data.reference) caseStatusLink.href = '/case-status?ref=' + encodeURIComponent(data.reference);
     finderForm.hidden = true;
     document.querySelector('.finder-heading')?.setAttribute('hidden', '');
     document.querySelector('.finder-progress')?.setAttribute('hidden', '');
@@ -325,3 +327,203 @@ finderForm?.addEventListener('submit', async (event) => {
 });
 
 showStep(1, false);
+
+
+/* Instant location-first orphanage search */
+const locatorForm = document.querySelector('#instant-orphanage-search');
+const locatorPlace = document.querySelector('#locator-place');
+const locatorRadius = document.querySelector('#locator-radius');
+const locatorSubmit = document.querySelector('#locator-submit');
+const locatorStatus = document.querySelector('#locator-status');
+const locatorSummary = document.querySelector('#locator-summary');
+const locatorResults = document.querySelector('#locator-results');
+const locatorOfficialLeads = document.querySelector('#locator-official-leads');
+let latestLocatorResults = [];
+let latestOfficialLeads = [];
+let latestLocatorPlace = '';
+
+const escapeHtml = (input) => String(input ?? '')
+  .replaceAll('&', '&amp;')
+  .replaceAll('<', '&lt;')
+  .replaceAll('>', '&gt;')
+  .replaceAll('"', '&quot;')
+  .replaceAll("'", '&#039;');
+
+const safeHttpUrl = (input) => {
+  try {
+    const url = new URL(String(input || ''));
+    return url.protocol === 'http:' || url.protocol === 'https:' ? url.toString() : '';
+  } catch {
+    return '';
+  }
+};
+
+const webResearchUrl = (item) => {
+  const query = [item?.name, item?.city || latestLocatorPlace, 'детский дом директор история'].filter(Boolean).join(' ');
+  return 'https://www.google.com/search?q=' + encodeURIComponent(query);
+};
+
+const setLocatorStatus = (message, state = '') => {
+  if (!locatorStatus) return;
+  locatorStatus.textContent = message;
+  locatorStatus.dataset.state = state;
+};
+
+const renderLocatorResults = (payload) => {
+  latestLocatorResults = Array.isArray(payload.results) ? payload.results : [];
+  latestOfficialLeads = Array.isArray(payload.officialLeads) ? payload.officialLeads : [];
+  latestLocatorPlace = payload.location?.displayName || value('birthPlace') || '';
+
+  if (locatorSummary) {
+    locatorSummary.hidden = false;
+    locatorSummary.innerHTML = '<strong>' + escapeHtml(payload.location?.displayName || 'Location found') + '</strong>' +
+      '<span>Searching within ' + escapeHtml(payload.radiusKm) + ' km (' + escapeHtml(payload.radiusMiles) +
+      ' mi). ' + escapeHtml(latestLocatorResults.length) + ' nearby public-map candidate' +
+      (latestLocatorResults.length === 1 ? '' : 's') + ' found.</span>';
+  }
+
+  if (locatorResults) {
+    locatorResults.hidden = false;
+    if (!latestLocatorResults.length) {
+      locatorResults.innerHTML = '<div class="locator-empty"><strong>No nearby institution was found in the current public map dataset.</strong><br>This does not mean no orphanage existed there historically. Try a wider radius, a historical/current city name, or submit a research case so RAO can search archival and web sources.</div>';
+    } else {
+      locatorResults.innerHTML = latestLocatorResults.map((item, index) => {
+        const website = safeHttpUrl(item.website);
+        const sourceUrl = safeHttpUrl(item.sourceUrl);
+        const address = item.address || item.locationLabel || 'Address not listed in map data';
+        const meta = [
+          item.operator ? '<div><strong>Operator:</strong> ' + escapeHtml(item.operator) + '</div>' : '',
+          item.director ? '<div><strong>Director / head:</strong> ' + escapeHtml(item.director) + '</div>' : '',
+          item.doctor ? '<div><strong>Doctor / medical contact:</strong> ' + escapeHtml(item.doctor) + '</div>' : '',
+          item.contactPerson ? '<div><strong>Contact person:</strong> ' + escapeHtml(item.contactPerson) + '</div>' : '',
+          item.phone ? '<div><strong>Phone:</strong> ' + escapeHtml(item.phone) + '</div>' : '',
+          item.email ? '<div><strong>Email:</strong> ' + escapeHtml(item.email) + '</div>' : '',
+          item.coordinates ? '<div><strong>Coordinates:</strong> ' + escapeHtml(item.coordinates) + '</div>' : '',
+          item.osmType ? '<div><strong>Map record:</strong> ' + escapeHtml(item.osmType) + '</div>' : ''
+        ].filter(Boolean).join('');
+        return '<article class="locator-card">' +
+          '<div class="locator-distance"><strong>' + escapeHtml(item.distanceKm) + '</strong><span>km away</span></div>' +
+          '<div><span class="locator-type">' + escapeHtml(item.typeLabel || 'Institution candidate') + '</span>' +
+          '<h3>' + escapeHtml(item.name || 'Unnamed institution') + '</h3>' +
+          '<p><strong>Address:</strong> ' + escapeHtml(address) + '</p>' +
+          (meta ? '<div class="locator-meta">' + meta + '</div>' : '') +
+          '<p class="locator-source">Source: OpenStreetMap public data · current listing, not historical proof</p></div>' +
+          '<div class="locator-card-actions">' +
+          '<button class="button button-primary" type="button" data-use-map-result="' + index + '">Use as research lead</button>' +
+          (sourceUrl ? '<a class="button button-secondary" target="_blank" rel="noopener noreferrer" href="' + escapeHtml(sourceUrl) + '">Open map source ↗</a>' : '') +
+          (website ? '<a class="button button-secondary" target="_blank" rel="noopener noreferrer" href="' + escapeHtml(website) + '">Institution website ↗</a>' : '') +
+          '<a class="button button-secondary" target="_blank" rel="noopener noreferrer" href="' + escapeHtml(webResearchUrl(item)) + '">Search historical web records ↗</a>' +
+          '</div></article>';
+      }).join('');
+    }
+  }
+
+  if (locatorOfficialLeads) {
+    if (!latestOfficialLeads.length) {
+      locatorOfficialLeads.hidden = true;
+      locatorOfficialLeads.innerHTML = '';
+    } else {
+      locatorOfficialLeads.hidden = false;
+      locatorOfficialLeads.innerHTML = '<h3>RAO-curated web leads</h3>' +
+        '<p>These are region-level leads from government, education, or established child-welfare directories. They may include information that public map data does not, such as a director or formal institution name. They still require historical verification for an adoption-era match.</p>' +
+        '<div class="official-lead-grid">' + latestOfficialLeads.map((lead, index) => {
+          const sourceUrl = safeHttpUrl(lead.sourceUrl);
+          return '<article class="official-lead"><span class="verified-source">' + escapeHtml(lead.sourceLabel || 'Public source') + '</span>' +
+            '<h4>' + escapeHtml(lead.name) + '</h4>' +
+            (lead.address ? '<p><strong>Address:</strong> ' + escapeHtml(lead.address) + '</p>' : '') +
+            (lead.director ? '<p><strong>Director / head:</strong> ' + escapeHtml(lead.director) + '</p>' : '') +
+            (lead.phone ? '<p><strong>Phone:</strong> ' + escapeHtml(lead.phone) + '</p>' : '') +
+            (lead.notes ? '<p>' + escapeHtml(lead.notes) + '</p>' : '') +
+            '<div class="locator-card-actions"><button class="button button-primary" type="button" data-use-official-lead="' + index + '">Use as research lead</button>' +
+            (sourceUrl ? '<a class="button button-secondary" target="_blank" rel="noopener noreferrer" href="' + escapeHtml(sourceUrl) + '">View source ↗</a>' : '') +
+            '</div></article>';
+        }).join('') + '</div>';
+    }
+  }
+};
+
+const prefillResearchCase = (item, sourceLabel) => {
+  if (!finderForm || !item) return;
+  const set = (name, newValue) => {
+    const field = finderForm.elements.namedItem(name);
+    if (field && newValue && !String(field.value || '').trim()) field.value = newValue;
+  };
+
+  set('birthPlace', locatorPlace?.value || latestLocatorPlace);
+  set('institutionName', item.name);
+  set('institutionLocation', item.city || item.locationLabel || latestLocatorPlace);
+  set('addressClue', item.address);
+  if (item.typeValue) set('institutionType', item.typeValue);
+  if (item.director) set('directorName', item.director);
+  if (item.doctor) set('doctorName', item.doctor);
+
+  const sourceText = [sourceLabel, item.sourceUrl, item.notes].filter(Boolean).join(' — ');
+  const evidence = finderForm.elements.namedItem('evidenceNotes');
+  if (evidence && sourceText) {
+    const existing = String(evidence.value || '').trim();
+    evidence.value = [existing, 'Locator lead: ' + sourceText].filter(Boolean).join('\n');
+  }
+
+  setLocatorStatus('Added "' + (item.name || 'candidate') + '" to your research case. Complete the intake below if you want RAO staff to investigate it.', 'success');
+  document.querySelector('#start')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
+
+locatorResults?.addEventListener('click', (event) => {
+  const button = event.target.closest('[data-use-map-result]');
+  if (!button) return;
+  const index = Number(button.dataset.useMapResult);
+  const item = latestLocatorResults[index];
+  if (item) prefillResearchCase(item, 'OpenStreetMap public result');
+});
+
+locatorOfficialLeads?.addEventListener('click', (event) => {
+  const button = event.target.closest('[data-use-official-lead]');
+  if (!button) return;
+  const index = Number(button.dataset.useOfficialLead);
+  const item = latestOfficialLeads[index];
+  if (item) prefillResearchCase(item, item.sourceLabel || 'RAO-curated web lead');
+});
+
+locatorForm?.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  if (!locatorForm.reportValidity()) return;
+
+  const place = String(locatorPlace?.value || '').trim();
+  const radius = String(locatorRadius?.value || '80');
+  const originalText = locatorSubmit?.textContent || 'Find nearby institutions';
+  if (locatorSubmit) {
+    locatorSubmit.disabled = true;
+    locatorSubmit.textContent = 'Searching Russia…';
+    locatorSubmit.setAttribute('aria-busy', 'true');
+  }
+  setLocatorStatus('Locating "' + place + '" and searching nearby public institution records…', 'loading');
+  if (locatorSummary) locatorSummary.hidden = true;
+  if (locatorResults) locatorResults.hidden = true;
+  if (locatorOfficialLeads) locatorOfficialLeads.hidden = true;
+
+  try {
+    const response = await fetch('/api/orphanages?place=' + encodeURIComponent(place) + '&radius=' + encodeURIComponent(radius), {
+      headers: { accept: 'application/json' }
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || data.ok !== true) throw new Error(data.error || 'We could not search that location right now.');
+    renderLocatorResults(data);
+    setLocatorStatus(
+      data.results?.length
+        ? 'Search complete. Review the closest candidates below; distance does not prove an adoption-era match.'
+        : 'Location found, but no current public-map candidates were returned. Try a wider radius or use the RAO research case.',
+      data.results?.length ? 'success' : ''
+    );
+
+    const birthPlaceField = finderForm?.elements.namedItem('birthPlace');
+    if (birthPlaceField && !String(birthPlaceField.value || '').trim()) birthPlaceField.value = place;
+  } catch (error) {
+    setLocatorStatus(error.message || 'We could not search that location right now.', 'error');
+  } finally {
+    if (locatorSubmit) {
+      locatorSubmit.disabled = false;
+      locatorSubmit.textContent = originalText;
+      locatorSubmit.removeAttribute('aria-busy');
+    }
+  }
+});

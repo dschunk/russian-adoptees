@@ -1,3 +1,5 @@
+import { DurableObject } from "cloudflare:workers";
+
 const ALLOWED_TOPICS = new Set([
   'Citizenship or passport question',
   'Russian records or documents',
@@ -44,6 +46,8 @@ const CANONICAL_ROUTES = new Set([
   '/about',
   '/accessibility',
   '/administration',
+  '/case-manage',
+  '/case-status',
   '/citizenship',
   '/community',
   '/contact',
@@ -58,6 +62,140 @@ const CANONICAL_ROUTES = new Set([
 ]);
 
 const SOCIAL_IMAGE = 'https://russianadoptees.com/assets/rao-social.jpg';
+
+const CASE_STATUSES = new Set([
+  'Received',
+  'Under review',
+  'Researching',
+  'Waiting for information',
+  'Possible match found',
+  'Resolved',
+  'Closed'
+]);
+
+const HISTORICAL_PLACE_ALIASES = new Map([
+  ['leningrad', 'Saint Petersburg'],
+  ['ленинград', 'Санкт-Петербург'],
+  ['gorky', 'Nizhny Novgorod'],
+  ['горький', 'Нижний Новгород'],
+  ['sverdlovsk', 'Yekaterinburg'],
+  ['свердловск', 'Екатеринбург'],
+  ['kuybyshev', 'Samara'],
+  ['kuibyshev', 'Samara'],
+  ['куйбышев', 'Самара'],
+  ['kalinin', 'Tver'],
+  ['калинин', 'Тверь'],
+  ['ordzhonikidze', 'Vladikavkaz'],
+  ['орджоникидзе', 'Владикавказ']
+]);
+
+const OFFICIAL_INSTITUTION_LEADS = [
+  {
+    regions: ['saint petersburg', 'санкт-петербург'],
+    city: 'Peterhof',
+    name: 'Дом социального обслуживания «Первый»',
+    address: '198517, Санкт-Петербург, Петергоф, улица Воровского, дом 12',
+    director: 'Асикритов Валерий Николаевич',
+    phone: '450-70-39',
+    sourceLabel: 'St. Petersburg government',
+    sourceUrl: 'https://www.gov.spb.ru/gov/otrasl/trud/podvedomstvennye-uchrezhdeniya/',
+    notes: 'Current public institution listing; historical names and functions should be checked for the adoption year.'
+  },
+  {
+    regions: ['saint petersburg', 'санкт-петербург'],
+    city: 'Peterhof',
+    name: 'Детский дом социального обслуживания «Солнечный»',
+    address: '198504, Санкт-Петербург, Петергоф, улица Петергофская, дом 4/2',
+    director: 'Дерябина Ирина Викторовна',
+    phone: '450-50-83',
+    sourceLabel: 'St. Petersburg government',
+    sourceUrl: 'https://www.gov.spb.ru/gov/otrasl/trud/podvedomstvennye-uchrezhdeniya/',
+    notes: 'Current public institution listing; historical names and functions should be checked for the adoption year.'
+  },
+  {
+    regions: ['saint petersburg', 'санкт-петербург'],
+    city: 'Ushkovo',
+    name: 'Дом социального обслуживания «Парус»',
+    address: '197720, Санкт-Петербург, посёлок Ушково, Приморское шоссе, дом 617, литера О',
+    sourceLabel: 'St. Petersburg government',
+    sourceUrl: 'https://www.gov.spb.ru/gov/otrasl/trud/podvedomstvennye-uchrezhdeniya/',
+    notes: 'Current public institution listing; historical names and functions should be checked for the adoption year.'
+  },
+  {
+    regions: ['tver oblast', 'тверская область'],
+    city: 'Kimry',
+    name: 'Кимрская школа-интернат',
+    address: '171505, Тверская область, г. Кимры, ул. Парковая, д. 3',
+    sourceLabel: 'Russian Ministry of Education',
+    sourceUrl: 'https://edu.gov.ru/activity/main_activities/limited_health/list_of_organizations/',
+    notes: 'Listed as an institution for children without parental care; verify the institution name and status for the relevant year.'
+  },
+  {
+    regions: ['tver oblast', 'тверская область'],
+    city: 'Ploskosh',
+    name: 'Плоскошская школа-интернат',
+    address: '172870, Тверская область, Торопецкий р-н, п. Плоскошь, ул. Советская, д. 19',
+    sourceLabel: 'Russian Ministry of Education',
+    sourceUrl: 'https://edu.gov.ru/activity/main_activities/limited_health/list_of_organizations/',
+    notes: 'Listed as a boarding institution; verify adoption-era function and archival successor.'
+  },
+  {
+    regions: ['tver oblast', 'тверская область'],
+    city: 'Emmaus',
+    name: 'Эммаусская школа-интернат',
+    address: '170530, Тверская область, Калининский р-н, н.п. Эммаусская школа-интернат, д. 12',
+    sourceLabel: 'Russian Ministry of Education',
+    sourceUrl: 'https://edu.gov.ru/activity/main_activities/limited_health/list_of_organizations/',
+    notes: 'Listed as an institution for children without parental care; verify adoption-era function and name.'
+  },
+  {
+    regions: ['rostov oblast', 'ростовская область'],
+    city: 'Azov',
+    name: 'Детский дом г. Азова',
+    director: 'Байер Елена Александровна',
+    phone: '(863-42) 4-02-15',
+    sourceLabel: 'Regional education directory',
+    sourceUrl: 'https://remroo.profiedu.ru/site/section?id=43',
+    notes: 'Public staff directory entry. Staff names are time-sensitive and should not be assumed to match an earlier adoption year.'
+  },
+  {
+    regions: ['rostov oblast', 'ростовская область'],
+    city: 'Bataysk',
+    name: 'Детский дом г. Батайска',
+    director: 'Пащенко Ольга Петровна',
+    phone: '(863-54) 2-25-66',
+    sourceLabel: 'Regional education directory',
+    sourceUrl: 'https://remroo.profiedu.ru/site/section?id=43',
+    notes: 'Public staff directory entry. Staff names are time-sensitive and should not be assumed to match an earlier adoption year.'
+  },
+  {
+    regions: ['moscow', 'москва'],
+    city: 'Moscow',
+    name: 'ЦССВ «Наш дом»',
+    address: '121309, Москва, ул. Новозаводская, д. 19А, стр. 2',
+    sourceLabel: 'Наставники child-welfare directory',
+    sourceUrl: 'https://nastavniki.org/detskie-doma/',
+    notes: 'Current child-welfare directory listing; predecessor institutions and historical names may differ.'
+  },
+  {
+    regions: ['moscow', 'москва'],
+    city: 'Moscow',
+    name: 'ЦССВ «Каховские ромашки»',
+    address: '117303, Москва, ул. Каховка, д. 2, стр. 3',
+    sourceLabel: 'Наставники child-welfare directory',
+    sourceUrl: 'https://nastavniki.org/detskie-doma/',
+    notes: 'Current child-welfare directory listing; predecessor institutions and historical names may differ.'
+  },
+  {
+    regions: ['moscow', 'москва'],
+    city: 'Moscow',
+    name: 'ЦССВ «Вертикаль»',
+    address: '117638, Москва, Криворожский проезд, д. 1, стр. 1',
+    sourceLabel: 'Наставники child-welfare directory',
+    sourceUrl: 'https://nastavniki.org/detskie-doma/',
+    notes: 'Current child-welfare directory listing; predecessor institutions and historical names may differ.'
+  }
+];
 
 const SECURITY_HEADERS = {
   'x-content-type-options': 'nosniff',
@@ -229,6 +367,146 @@ const validEmail = (value) => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 };
 
+const sha256 = async (value) => {
+  const bytes = new TextEncoder().encode(String(value));
+  const digest = await crypto.subtle.digest('SHA-256', bytes);
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
+};
+
+const validCaseReference = (value) => /^RAO-OF-\d{8}-[A-F0-9]{8}$/.test(String(value || '').trim().toUpperCase());
+
+const caseStub = (env, reference) => {
+  const id = env.CASE_STORE.idFromName(reference);
+  return env.CASE_STORE.get(id);
+};
+
+const internalJson = async (stub, path, data) => {
+  const response = await stub.fetch('https://case.internal' + path, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+  return response.json();
+};
+
+const haversineKm = (lat1, lon1, lat2, lon2) => {
+  const toRad = (degrees) => degrees * Math.PI / 180;
+  const earthKm = 6371.0088;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return earthKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
+
+const safeHttp = (value) => {
+  try {
+    const parsed = new URL(String(value || ''));
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? parsed.toString() : '';
+  } catch {
+    return '';
+  }
+};
+
+const buildOsmAddress = (tags = {}) => {
+  if (tags['addr:full']) return tags['addr:full'];
+  const street = [tags['addr:street'], tags['addr:housenumber']].filter(Boolean).join(', ');
+  return [
+    tags['addr:postcode'],
+    tags['addr:region'],
+    tags['addr:city'] || tags['addr:town'] || tags['addr:village'],
+    street
+  ].filter(Boolean).join(', ');
+};
+
+const institutionTypeLabel = (tags = {}, name = '') => {
+  const lower = String(name).toLowerCase();
+  if (lower.includes('дом ребёнка') || lower.includes('дом ребенка') || lower.includes('baby home')) return 'Baby home';
+  if (lower.includes('детский дом') || lower.includes('orphanage') || lower.includes("children's home")) return "Children's home";
+  if (lower.includes('школа-интернат') || lower.includes('интернат')) return 'Boarding institution';
+  if (lower.includes('центр содействия') || lower.includes('центр помощи детям')) return 'Child-welfare center';
+  if (tags.social_facility === 'group_home') return 'Residential social facility';
+  return 'Child-welfare institution';
+};
+
+const canonicalInstitutionType = (label) => {
+  if (label === 'Baby home') return 'Baby home / дом ребёнка';
+  if (label === "Children's home") return "Children's home / детский дом";
+  if (label === 'Boarding institution') return 'Boarding institution / школа-интернат';
+  return 'Other institution';
+};
+
+const normalizePlaceForGeocoding = (input) => {
+  const raw = clean(input, 160);
+  const lower = raw.toLowerCase();
+  return HISTORICAL_PLACE_ALIASES.get(lower) || raw;
+};
+
+const matchingOfficialLeads = (geocode) => {
+  const searchable = [
+    geocode?.display_name,
+    geocode?.address?.state,
+    geocode?.address?.region,
+    geocode?.address?.city,
+    geocode?.address?.town,
+    geocode?.address?.county
+  ].filter(Boolean).join(' ').toLowerCase();
+  return OFFICIAL_INSTITUTION_LEADS.filter((lead) =>
+    lead.regions.some((region) => searchable.includes(region))
+  ).map(({ regions, ...lead }) => lead);
+};
+
+export class CaseStore extends DurableObject {
+  constructor(ctx, env) {
+    super(ctx, env);
+    this.ctx = ctx;
+  }
+
+  async fetch(request) {
+    const url = new URL(request.url);
+    let body = {};
+    try {
+      body = await request.json();
+    } catch {
+      return new Response(JSON.stringify({ ok: false }), { status: 400, headers: { 'content-type': 'application/json' } });
+    }
+
+    if (url.pathname === '/create') {
+      const existing = await this.ctx.storage.get('case');
+      if (!existing) await this.ctx.storage.put('case', body);
+      return Response.json({ ok: true });
+    }
+
+    const record = await this.ctx.storage.get('case');
+    if (!record) return Response.json({ ok: false, found: false }, { status: 404 });
+
+    if (url.pathname === '/lookup') {
+      if (body.emailHash !== record.emailHash) return Response.json({ ok: false, found: false }, { status: 404 });
+      return Response.json({
+        ok: true,
+        found: true,
+        reference: record.reference,
+        submittedAt: record.submittedAt,
+        status: record.status,
+        publicNote: record.publicNote || '',
+        lastUpdatedAt: record.lastUpdatedAt || record.submittedAt
+      });
+    }
+
+    if (url.pathname === '/admin') {
+      if (body.adminTokenHash !== record.adminTokenHash) return Response.json({ ok: false }, { status: 403 });
+      if (!CASE_STATUSES.has(body.status)) return Response.json({ ok: false }, { status: 400 });
+      record.status = body.status;
+      record.publicNote = clean(body.publicNote, 1000);
+      record.lastUpdatedAt = new Date().toISOString();
+      await this.ctx.storage.put('case', record);
+      return Response.json({ ok: true, status: record.status, lastUpdatedAt: record.lastUpdatedAt });
+    }
+
+    return Response.json({ ok: false }, { status: 404 });
+  }
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -267,6 +545,210 @@ export default {
       return secureResponse(assetResponse, request);
     }
 
+    if (url.pathname === '/api/orphanages') {
+      if (request.method !== 'GET') {
+        return json({ ok: false, error: 'Method not allowed.' }, 405, request);
+      }
+
+      const requestedPlace = clean(url.searchParams.get('place'), 160);
+      const radiusKm = Math.max(10, Math.min(320, Number(url.searchParams.get('radius') || 80)));
+      if (requestedPlace.length < 2 || !Number.isFinite(radiusKm)) {
+        return json({ ok: false, error: 'Enter a city, town, settlement, or region to search.' }, 400, request);
+      }
+
+      const cache = caches.default;
+      const cacheKey = new Request(url.toString(), { method: 'GET' });
+      const cached = await cache.match(cacheKey);
+      if (cached) return secureResponse(cached, request);
+
+      const interpretedPlace = normalizePlaceForGeocoding(requestedPlace);
+      const geocodeUrl = new URL('https://nominatim.openstreetmap.org/search');
+      geocodeUrl.searchParams.set('format', 'jsonv2');
+      geocodeUrl.searchParams.set('limit', '5');
+      geocodeUrl.searchParams.set('addressdetails', '1');
+      geocodeUrl.searchParams.set('countrycodes', 'ru');
+      geocodeUrl.searchParams.set('accept-language', 'en,ru');
+      geocodeUrl.searchParams.set('q', interpretedPlace + ', Russia');
+
+      let geocodes = [];
+      try {
+        const geocodeResponse = await fetch(geocodeUrl.toString(), {
+          headers: {
+            'user-agent': 'RussianAdopteesOrganization-OrphanageFinder/2.0 (+https://russianadoptees.com/contact)',
+            'referer': 'https://russianadoptees.com/orphanage-finder',
+            'accept': 'application/json'
+          }
+        });
+        if (!geocodeResponse.ok) throw new Error('Geocoding service unavailable');
+        geocodes = await geocodeResponse.json();
+      } catch (error) {
+        console.error('Orphanage locator geocoding failed', error?.message);
+        return json({ ok: false, error: 'The location service is temporarily unavailable. Please try again shortly.' }, 503, request);
+      }
+
+      const geocode = geocodes.find((item) => item?.lat && item?.lon) || null;
+      if (!geocode) {
+        return json({
+          ok: false,
+          error: 'We could not locate that place in Russia. Try the current city name, add the oblast/republic, or use a nearby larger city.'
+        }, 404, request);
+      }
+
+      const lat = Number(geocode.lat);
+      const lon = Number(geocode.lon);
+      const radiusMeters = Math.round(radiusKm * 1000);
+      const overpassQuery = `[out:json][timeout:25];
+(
+  nwr(around:${radiusMeters},${lat},${lon})["amenity"="social_facility"]["social_facility:for"~"child|juvenile|orphan",i];
+  nwr(around:${radiusMeters},${lat},${lon})["social_facility"="group_home"]["social_facility:for"~"child|juvenile|orphan",i];
+  nwr(around:${radiusMeters},${lat},${lon})["name"~"детский дом|дом ребёнка|дом ребенка|школа-интернат|детский дом-интернат|центр содействия семейному воспитанию|центр помощи детям|orphanage|baby home|children.?s home",i];
+);
+out center tags;`;
+
+      const overpassEndpoints = [
+        'https://overpass-api.de/api/interpreter',
+        'https://overpass.kumi.systems/api/interpreter'
+      ];
+
+      let overpassData = null;
+      for (const endpoint of overpassEndpoints) {
+        try {
+          const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+              'content-type': 'application/x-www-form-urlencoded;charset=UTF-8',
+              'user-agent': 'RussianAdopteesOrganization-OrphanageFinder/2.0 (+https://russianadoptees.com/contact)'
+            },
+            body: new URLSearchParams({ data: overpassQuery }).toString()
+          });
+          if (!response.ok) continue;
+          overpassData = await response.json();
+          break;
+        } catch (error) {
+          console.error('Overpass endpoint failed', endpoint, error?.message);
+        }
+      }
+
+      if (!overpassData) {
+        return json({
+          ok: false,
+          error: 'The nearby-institution map service is temporarily busy. Your location was found; please try the search again in a moment.'
+        }, 503, request);
+      }
+
+      const seen = new Set();
+      const results = (Array.isArray(overpassData.elements) ? overpassData.elements : [])
+        .map((element) => {
+          const itemLat = Number(element.lat ?? element.center?.lat);
+          const itemLon = Number(element.lon ?? element.center?.lon);
+          if (!Number.isFinite(itemLat) || !Number.isFinite(itemLon)) return null;
+          const key = `${element.type}:${element.id}`;
+          if (seen.has(key)) return null;
+          seen.add(key);
+          const tags = element.tags || {};
+          const name = clean(tags.name || tags['name:ru'] || tags['name:en'] || 'Unnamed child-welfare institution', 240);
+          const typeLabel = institutionTypeLabel(tags, name);
+          return {
+            id: key,
+            name,
+            distanceKm: Number(haversineKm(lat, lon, itemLat, itemLon).toFixed(1)),
+            typeLabel,
+            typeValue: canonicalInstitutionType(typeLabel),
+            address: clean(buildOsmAddress(tags), 400),
+            city: clean(tags['addr:city'] || tags['addr:town'] || tags['addr:village'], 160),
+            locationLabel: clean(geocode.display_name, 300),
+            operator: clean(tags.operator, 220),
+            director: clean(tags.director || tags.head || tags.principal, 180),
+            doctor: clean(tags.doctor || tags.chief_physician || tags.medical_director, 180),
+            contactPerson: clean(tags['contact:person'], 180),
+            phone: clean(tags.phone || tags['contact:phone'], 120),
+            email: clean(tags.email || tags['contact:email'], 180),
+            website: safeHttp(tags.website || tags['contact:website']),
+            coordinates: `${itemLat.toFixed(5)}, ${itemLon.toFixed(5)}`,
+            osmType: element.type,
+            sourceUrl: `https://www.openstreetmap.org/${element.type}/${element.id}`
+          };
+        })
+        .filter(Boolean)
+        .sort((a, b) => a.distanceKm - b.distanceKm)
+        .slice(0, 80);
+
+      const payload = {
+        ok: true,
+        requestedPlace,
+        interpretedPlace,
+        radiusKm,
+        radiusMiles: Number((radiusKm * 0.621371).toFixed(0)),
+        location: {
+          displayName: clean(geocode.display_name, 400),
+          lat,
+          lon,
+          address: geocode.address || {}
+        },
+        results,
+        officialLeads: matchingOfficialLeads(geocode),
+        attribution: 'Nearby-facility data © OpenStreetMap contributors. Public map results describe current or recently mapped facilities and must be independently verified for historical adoption research.'
+      };
+
+      const locatorResponse = secureResponse(new Response(JSON.stringify(payload), {
+        status: 200,
+        headers: {
+          'content-type': 'application/json; charset=utf-8',
+          'cache-control': 'public, max-age=21600'
+        }
+      }), request);
+      await cache.put(cacheKey, locatorResponse.clone());
+      return locatorResponse;
+    }
+
+    if (url.pathname === '/api/case-status') {
+      if (request.method !== 'POST') {
+        return json({ ok: false, error: 'Method not allowed.' }, 405, request);
+      }
+      let body;
+      try {
+        body = await request.json();
+      } catch {
+        return json({ ok: false, error: 'Invalid request body.' }, 400, request);
+      }
+      const reference = cleanHeader(body.reference, 40).toUpperCase();
+      const email = cleanHeader(body.email, 254).toLowerCase();
+      if (!validCaseReference(reference) || !validEmail(email) || !env.CASE_STORE) {
+        return json({ ok: false, error: 'We could not find a case matching that reference and email.' }, 404, request);
+      }
+      const status = await internalJson(caseStub(env, reference), '/lookup', { emailHash: await sha256(email) });
+      if (!status?.ok) {
+        return json({ ok: false, error: 'We could not find a case matching that reference and email.' }, 404, request);
+      }
+      return json(status, 200, request);
+    }
+
+    if (url.pathname === '/api/case-admin') {
+      if (request.method !== 'POST') {
+        return json({ ok: false, error: 'Method not allowed.' }, 405, request);
+      }
+      let body;
+      try {
+        body = await request.json();
+      } catch {
+        return json({ ok: false, error: 'Invalid request body.' }, 400, request);
+      }
+      const reference = cleanHeader(body.reference, 40).toUpperCase();
+      const adminToken = cleanHeader(body.adminToken, 200);
+      const status = cleanHeader(body.status, 60);
+      const publicNote = clean(body.publicNote, 1000);
+      if (!validCaseReference(reference) || adminToken.length < 32 || !CASE_STATUSES.has(status) || !env.CASE_STORE) {
+        return json({ ok: false, error: 'Invalid case-management request.' }, 400, request);
+      }
+      const result = await internalJson(caseStub(env, reference), '/admin', {
+        adminTokenHash: await sha256(adminToken),
+        status,
+        publicNote
+      });
+      if (!result?.ok) return json({ ok: false, error: 'The case-management link is invalid or expired.' }, 403, request);
+      return json(result, 200, request);
+    }
+
     if (url.pathname === '/api/health') {
       if (request.method !== 'GET') {
         return json({ ok: false, error: 'Method not allowed.' }, 405, request);
@@ -277,8 +759,12 @@ export default {
         service: 'Russian Adoptees Organization',
         contactApi: true,
         orphanageCaseApi: true,
+        orphanageLocatorApi: true,
+        caseTrackingApi: true,
+        caseStoreConfigured: Boolean(env.CASE_STORE),
         emailBindingConfigured: Boolean(env.EMAIL),
         contactDestinationConfigured: Boolean(env.CONTACT_DESTINATION),
+        orphanageStaffDestinationConfigured: Boolean(env.ORPHANAGE_STAFF_DESTINATION || env.CONTACT_DESTINATION),
         timestamp: new Date().toISOString()
       }, 200, request);
     }
@@ -386,16 +872,33 @@ export default {
         }, 400, request);
       }
 
-      if (!env.CONTACT_DESTINATION) {
+      if (!env.CONTACT_DESTINATION || !env.CASE_STORE) {
         return json({
           ok: false,
-          error: 'RAO email delivery is being activated. Please use the general contact page for now.'
+          error: 'RAO research intake is temporarily unavailable. Please use the general contact page for now.'
         }, 503, request);
       }
 
-      const dateCode = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+      const submittedAt = new Date().toISOString();
+      const dateCode = submittedAt.slice(0, 10).replace(/-/g, '');
       const reference = `RAO-OF-${dateCode}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
+      const adminToken = (crypto.randomUUID() + crypto.randomUUID()).replaceAll('-', '');
       const subjectLead = cleanHeader(birthName || institutionName || birthPlace || 'New research case', 80);
+
+      try {
+        await internalJson(caseStub(env, reference), '/create', {
+          reference,
+          emailHash: await sha256(email),
+          adminTokenHash: await sha256(adminToken),
+          submittedAt,
+          status: 'Received',
+          publicNote: 'RAO received your research request. A researcher has not posted an additional update yet.',
+          lastUpdatedAt: submittedAt
+        });
+      } catch (error) {
+        console.error('RAO case tracking create failed', error?.message);
+        return json({ ok: false, error: 'We could not create a trackable research case right now. Please try again.' }, 503, request);
+      }
 
       const section = (title, rows) => {
         const rendered = rows
@@ -409,7 +912,7 @@ export default {
         'Find My Orphanage — Research Case',
         '',
         `Case reference: ${reference}`,
-        `Submitted: ${new Date().toISOString()}`,
+        `Submitted: ${submittedAt}`,
         '',
         ...section('SUBMITTER', [
           ['Name', requesterName],
@@ -462,12 +965,18 @@ export default {
         '',
         'Research standard: Search strings and possible institutions are leads only. Do not describe an institution as a verified match until supporting evidence has been reviewed.',
         '',
+        'STAFF CASE MANAGEMENT',
+        '---------------------',
+        `Update case status: https://russianadoptees.com/case-manage?ref=${encodeURIComponent(reference)}#token=${adminToken}`,
+        `Submitter status lookup: https://russianadoptees.com/case-status?ref=${encodeURIComponent(reference)}`,
+        'The management token is case-specific. Do not post or share the staff management link publicly.',
+        '',
         'Source: https://russianadoptees.com/orphanage-finder'
       ].join('\n');
 
       try {
         await env.EMAIL.send({
-          to: env.CONTACT_DESTINATION,
+          to: env.ORPHANAGE_STAFF_DESTINATION || env.CONTACT_DESTINATION,
           from: {
             email: 'contact@russianadoptees.com',
             name: 'Russian Adoptees Organization'
@@ -476,13 +985,14 @@ export default {
             email,
             name: requesterName
           },
-          subject: `[RAO Orphanage Finder] ${reference}: ${subjectLead}`,
+          subject: `[NEW RAO ORPHANAGE CASE] ${reference}: ${subjectLead}`,
           text: emailText
         });
 
         return json({
           ok: true,
           reference,
+          statusUrl: `/case-status?ref=${encodeURIComponent(reference)}`,
           message: 'Your orphanage research case has been received by the Russian Adoptees Organization.'
         }, 200, request);
       } catch (error) {

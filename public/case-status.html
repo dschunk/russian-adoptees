@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#0b1f33">
+  <link rel="icon" type="image/svg+xml" href="/assets/rao-favicon.svg?v=20260829-7">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="description" content="Check the status of a Find My Orphanage research case with the Russian Adoptees Organization.">
+  <link rel="canonical" href="https://russianadoptees.com/case-status">
+  <title>Check Research Case | Russian Adoptees Organization</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/pages.css">
+  <link rel="stylesheet" href="/case.css?v=20260927-1">
+  <link rel="stylesheet" href="/branding.css?v=20260829-7">
+  <script src="/app.js?v=20260830-1" defer></script>
+  <script src="/case-status.js?v=20260927-1" defer></script>
+</head>
+<body class="inner-page case-page">
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-header scrolled" data-header><div class="container header-inner">
+  <a class="brand" href="/" aria-label="Russian Adoptees Organization home"><span class="brand-mark"><span>RAO</span></span><span class="brand-copy"><strong>Russian Adoptees</strong><small>Organization</small></span></a>
+  <button class="menu-toggle" type="button" aria-label="Open navigation" aria-expanded="false" data-menu-toggle><span></span><span></span><span></span></button>
+  <nav class="site-nav" aria-label="Primary navigation" data-nav></nav>
+</div></header>
+<main id="main">
+  <section class="page-hero"><div class="container"><div class="breadcrumbs"><a href="/">Home</a><span>›</span><a href="/orphanage-finder">Find My Orphanage</a><span>›</span><span>Case Status</span></div><p class="eyebrow">RAO Research Desk</p><h1>Check your case</h1><p class="lede">Enter the case number you received after submitting your research request and the same email address used on the form.</p></div></section>
+  <div class="case-shell">
+    <section class="case-card">
+      <h2>Research case lookup</h2>
+      <p>Case numbers begin with <strong>RAO-OF-</strong>. Your email address is used only to verify that you are authorized to view the case status.</p>
+      <form class="case-form" id="case-status-form">
+        <label><span>Case reference</span><input id="case-reference-input" type="text" name="reference" maxlength="40" autocomplete="off" required placeholder="RAO-OF-20260927-XXXXXXXX"></label>
+        <label><span>Email used on the submission</span><input id="case-email-input" type="email" name="email" maxlength="254" autocomplete="email" required></label>
+        <button class="button button-primary" type="submit" id="case-status-submit">Check status</button>
+        <p class="case-status-message" id="case-status-message" aria-live="polite"></p>
+      </form>
+      <section class="case-result" id="case-result" hidden>
+        <div class="case-result-head"><div><small>Research case</small><h3 id="case-result-reference"></h3></div><span class="case-status-pill" id="case-result-status"></span></div>
+        <div class="case-result-body">
+          <div class="case-timeline-grid">
+            <div><span>Submitted</span><strong id="case-submitted"></strong></div>
+            <div><span>Last updated</span><strong id="case-updated"></strong></div>
+          </div>
+          <div class="case-note" id="case-public-note"></div>
+        </div>
+      </section>
+      <div class="case-explainer"><strong>How notifications work:</strong> when a Find My Orphanage case is submitted, RAO's private staff destination receives an internal email containing the case details and a case-management link. The submitter receives the case number on screen and can use this lookup page for updates. The current Cloudflare mail binding is not used for automatic email receipts to arbitrary public addresses.</div>
+    </section>
+  </div>
+</main>
+<footer class="site-footer"><div class="container footer-top"><div class="footer-brand"><div class="brand-mark footer-mark"><span>RAO</span></div><div><strong>Russian Adoptees Organization</strong><p>From Russia. Connected around the world.</p></div></div><div class="footer-links"></div></div><div class="container footer-bottom"><span>© <span data-year></span> Russian Adoptees Organization.</span><span>Independent · Adoptee-led · Community-built.</span></div></footer>
+</body>
+</html>
