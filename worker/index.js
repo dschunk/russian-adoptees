@@ -1,6 +1,7 @@
 const ALLOWED_TOPICS = new Set([
   'Citizenship or passport question',
   'Russian records or documents',
+  'Orphanage or institution research',
   'Community or membership',
   'Volunteer interest',
   'Media inquiry',
