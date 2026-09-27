@@ -658,7 +658,11 @@ out center tags;`;
             city: clean(tags['addr:city'] || tags['addr:town'] || tags['addr:village'], 160),
             locationLabel: clean(geocode.display_name, 300),
             operator: clean(tags.operator, 220),
+            director: clean(tags.director || tags.head || tags.principal, 180),
+            doctor: clean(tags.doctor || tags.chief_physician || tags.medical_director, 180),
+            contactPerson: clean(tags['contact:person'], 180),
             phone: clean(tags.phone || tags['contact:phone'], 120),
+            email: clean(tags.email || tags['contact:email'], 180),
             website: safeHttp(tags.website || tags['contact:website']),
             coordinates: `${itemLat.toFixed(5)}, ${itemLon.toFixed(5)}`,
             osmType: element.type,
@@ -760,6 +764,7 @@ out center tags;`;
         caseStoreConfigured: Boolean(env.CASE_STORE),
         emailBindingConfigured: Boolean(env.EMAIL),
         contactDestinationConfigured: Boolean(env.CONTACT_DESTINATION),
+        orphanageStaffDestinationConfigured: Boolean(env.ORPHANAGE_STAFF_DESTINATION || env.CONTACT_DESTINATION),
         timestamp: new Date().toISOString()
       }, 200, request);
     }
@@ -971,7 +976,7 @@ out center tags;`;
 
       try {
         await env.EMAIL.send({
-          to: env.CONTACT_DESTINATION,
+          to: env.ORPHANAGE_STAFF_DESTINATION || env.CONTACT_DESTINATION,
           from: {
             email: 'contact@russianadoptees.com',
             name: 'Russian Adoptees Organization'
