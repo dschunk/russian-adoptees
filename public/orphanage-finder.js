@@ -127,6 +127,7 @@ const buildLeadSheet = () => {
   addLine(lines, 'Social worker / guardianship official', value('officialNames'));
   addLine(lines, 'Records on hand', checkedValues('records').join('; '));
   addLine(lines, 'Short document wording / stamps / phrases', value('documentClues'));
+  addLine(lines, 'Clue provenance / source notes', value('evidenceNotes'));
   lines.push('');
   lines.push('ADOPTION PATH');
   addLine(lines, 'Adoption year', value('adoptionYear'));
@@ -171,7 +172,7 @@ const validateCurrentStep = () => {
   return true;
 };
 
-const showStep = (stepNumber) => {
+const showStep = (stepNumber, shouldScroll = true) => {
   currentStep = Math.max(1, Math.min(6, stepNumber));
   finderSteps.forEach((step, index) => {
     const active = index + 1 === currentStep;
@@ -190,7 +191,7 @@ const showStep = (stepNumber) => {
   if (backButton) backButton.hidden = currentStep === 1;
   if (nextButton) nextButton.hidden = currentStep === 6;
   if (currentStep === 6) refreshReview();
-  document.querySelector('#start')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  if (shouldScroll) document.querySelector('#start')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 };
 
 nextButton?.addEventListener('click', () => {
@@ -270,6 +271,7 @@ finderForm?.addEventListener('submit', async (event) => {
     officialNames: value('officialNames'),
     records: checkedValues('records'),
     documentClues: value('documentClues'),
+    evidenceNotes: value('evidenceNotes'),
     adoptionYear: value('adoptionYear'),
     adoptionAge: value('adoptionAge'),
     adoptionCourt: value('adoptionCourt'),
@@ -322,4 +324,4 @@ finderForm?.addEventListener('submit', async (event) => {
   }
 });
 
-showStep(1);
+showStep(1, false);
