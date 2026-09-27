@@ -358,6 +358,11 @@ const safeHttpUrl = (input) => {
   }
 };
 
+const webResearchUrl = (item) => {
+  const query = [item?.name, item?.city || latestLocatorPlace, 'детский дом директор история'].filter(Boolean).join(' ');
+  return 'https://www.google.com/search?q=' + encodeURIComponent(query);
+};
+
 const setLocatorStatus = (message, state = '') => {
   if (!locatorStatus) return;
   locatorStatus.textContent = message;
@@ -388,7 +393,11 @@ const renderLocatorResults = (payload) => {
         const address = item.address || item.locationLabel || 'Address not listed in map data';
         const meta = [
           item.operator ? '<div><strong>Operator:</strong> ' + escapeHtml(item.operator) + '</div>' : '',
+          item.director ? '<div><strong>Director / head:</strong> ' + escapeHtml(item.director) + '</div>' : '',
+          item.doctor ? '<div><strong>Doctor / medical contact:</strong> ' + escapeHtml(item.doctor) + '</div>' : '',
+          item.contactPerson ? '<div><strong>Contact person:</strong> ' + escapeHtml(item.contactPerson) + '</div>' : '',
           item.phone ? '<div><strong>Phone:</strong> ' + escapeHtml(item.phone) + '</div>' : '',
+          item.email ? '<div><strong>Email:</strong> ' + escapeHtml(item.email) + '</div>' : '',
           item.coordinates ? '<div><strong>Coordinates:</strong> ' + escapeHtml(item.coordinates) + '</div>' : '',
           item.osmType ? '<div><strong>Map record:</strong> ' + escapeHtml(item.osmType) + '</div>' : ''
         ].filter(Boolean).join('');
@@ -403,6 +412,7 @@ const renderLocatorResults = (payload) => {
           '<button class="button button-primary" type="button" data-use-map-result="' + index + '">Use as research lead</button>' +
           (sourceUrl ? '<a class="button button-secondary" target="_blank" rel="noopener noreferrer" href="' + escapeHtml(sourceUrl) + '">Open map source ↗</a>' : '') +
           (website ? '<a class="button button-secondary" target="_blank" rel="noopener noreferrer" href="' + escapeHtml(website) + '">Institution website ↗</a>' : '') +
+          '<a class="button button-secondary" target="_blank" rel="noopener noreferrer" href="' + escapeHtml(webResearchUrl(item)) + '">Search historical web records ↗</a>' +
           '</div></article>';
       }).join('');
     }
@@ -414,7 +424,7 @@ const renderLocatorResults = (payload) => {
       locatorOfficialLeads.innerHTML = '';
     } else {
       locatorOfficialLeads.hidden = false;
-      locatorOfficialLeads.innerHTML = '<h3>RAO-curated official web leads</h3>' +
+      locatorOfficialLeads.innerHTML = '<h3>RAO-curated web leads</h3>' +
         '<p>These are region-level leads from government, education, or established child-welfare directories. They may include information that public map data does not, such as a director or formal institution name. They still require historical verification for an adoption-era match.</p>' +
         '<div class="official-lead-grid">' + latestOfficialLeads.map((lead, index) => {
           const sourceUrl = safeHttpUrl(lead.sourceUrl);
