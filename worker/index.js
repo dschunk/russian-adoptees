@@ -755,6 +755,9 @@ out center tags;`;
         service: 'Russian Adoptees Organization',
         contactApi: true,
         orphanageCaseApi: true,
+        orphanageLocatorApi: true,
+        caseTrackingApi: true,
+        caseStoreConfigured: Boolean(env.CASE_STORE),
         emailBindingConfigured: Boolean(env.EMAIL),
         contactDestinationConfigured: Boolean(env.CONTACT_DESTINATION),
         timestamp: new Date().toISOString()
@@ -864,16 +867,33 @@ out center tags;`;
         }, 400, request);
       }
 
-      if (!env.CONTACT_DESTINATION) {
+      if (!env.CONTACT_DESTINATION || !env.CASE_STORE) {
         return json({
           ok: false,
-          error: 'RAO email delivery is being activated. Please use the general contact page for now.'
+          error: 'RAO research intake is temporarily unavailable. Please use the general contact page for now.'
         }, 503, request);
       }
 
-      const dateCode = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+      const submittedAt = new Date().toISOString();
+      const dateCode = submittedAt.slice(0, 10).replace(/-/g, '');
       const reference = `RAO-OF-${dateCode}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
+      const adminToken = (crypto.randomUUID() + crypto.randomUUID()).replaceAll('-', '');
       const subjectLead = cleanHeader(birthName || institutionName || birthPlace || 'New research case', 80);
+
+      try {
+        await internalJson(caseStub(env, reference), '/create', {
+          reference,
+          emailHash: await sha256(email),
+          adminTokenHash: await sha256(adminToken),
+          submittedAt,
+          status: 'Received',
+          publicNote: 'RAO received your research request. A researcher has not posted an additional update yet.',
+          lastUpdatedAt: submittedAt
+        });
+      } catch (error) {
+        console.error('RAO case tracking create failed', error?.message);
+        return json({ ok: false, error: 'We could not create a trackable research case right now. Please try again.' }, 503, request);
+      }
 
       const section = (title, rows) => {
         const rendered = rows
@@ -887,7 +907,7 @@ out center tags;`;
         'Find My Orphanage — Research Case',
         '',
         `Case reference: ${reference}`,
-        `Submitted: ${new Date().toISOString()}`,
+        `Submitted: ${submittedAt}`,
         '',
         ...section('SUBMITTER', [
           ['Name', requesterName],
@@ -940,6 +960,12 @@ out center tags;`;
         '',
         'Research standard: Search strings and possible institutions are leads only. Do not describe an institution as a verified match until supporting evidence has been reviewed.',
         '',
+        'STAFF CASE MANAGEMENT',
+        '---------------------',
+        `Update case status: https://russianadoptees.com/case-manage?ref=${encodeURIComponent(reference)}#token=${adminToken}`,
+        `Submitter status lookup: https://russianadoptees.com/case-status?ref=${encodeURIComponent(reference)}`,
+        'The management token is case-specific. Do not post or share the staff management link publicly.',
+        '',
         'Source: https://russianadoptees.com/orphanage-finder'
       ].join('\n');
 
@@ -954,13 +980,14 @@ out center tags;`;
             email,
             name: requesterName
           },
-          subject: `[RAO Orphanage Finder] ${reference}: ${subjectLead}`,
+          subject: `[NEW RAO ORPHANAGE CASE] ${reference}: ${subjectLead}`,
           text: emailText
         });
 
         return json({
           ok: true,
           reference,
+          statusUrl: `/case-status?ref=${encodeURIComponent(reference)}`,
           message: 'Your orphanage research case has been received by the Russian Adoptees Organization.'
         }, 200, request);
       } catch (error) {
