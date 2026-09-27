@@ -89,7 +89,60 @@ const HISTORICAL_PLACE_ALIASES = new Map([
   ['орджоникидзе', 'Владикавказ']
 ]);
 
+const KNOWN_PLACE_CENTERS = new Map([
+  ['smolensk', {
+    display_name: 'Smolensk, Smolensk Oblast, Russia',
+    lat: '54.7814',
+    lon: '32.0461',
+    address: { city: 'Smolensk', state: 'Smolensk Oblast', country: 'Russia' }
+  }],
+  ['смоленск', {
+    display_name: 'Смоленск, Смоленская область, Россия',
+    lat: '54.7814',
+    lon: '32.0461',
+    address: { city: 'Смоленск', state: 'Смоленская область', country: 'Россия' }
+  }]
+]);
+
 const OFFICIAL_INSTITUTION_LEADS = [
+  {
+    regions: ['smolensk', 'smolensk oblast', 'смоленск', 'смоленская область'],
+    city: 'Smolensk',
+    name: 'Областное государственное бюджетное учреждение «Смоленский социально-реабилитационный центр для несовершеннолетних «Феникс»',
+    sourceLabel: 'Smolensk Oblast Ministry of Social Development',
+    sourceUrl: 'https://socrazvitie.admin-smolensk.ru/organizacii-socialnogo-obsluzhivaniya/detskie-uchrezhdeniya-sistemy-socialnoj-zaschity/oblastnoe-gosudarstvennoe-byudzhetnoe-uchrezhdenie-smolenski/',
+    notes: 'Current official regional listing. The ministry page links to the institution’s location, leadership, staff, and service information. Verify predecessor names and adoption-era function separately.'
+  },
+  {
+    regions: ['smolensk', 'smolensk oblast', 'смоленск', 'смоленская область'],
+    city: 'Smolensk',
+    name: 'Детский дом «Гнездышко»',
+    address: '214025, Смоленск, ул. Нарвская, 11',
+    director: 'Худолеева Нина Дмитриевна',
+    phone: '(48122) 9-91-44',
+    sourceLabel: 'Historical orphanage web directory — verify independently',
+    sourceUrl: 'https://sitebaby.narod.ru/DetDomaISozUcrezhdSmol.htm',
+    notes: 'Historical web listing. A current map directory also lists «Гнездышко» on Narvskaya Street. Use this as a historical lead, not as proof for a specific adoption year.'
+  },
+  {
+    regions: ['smolensk', 'smolensk oblast', 'смоленск', 'смоленская область'],
+    city: 'Smolensk',
+    name: 'ГОУ Детский дом специальный коррекционный',
+    address: '214004, Смоленск, ул. Неверовского, 26',
+    director: 'Кузьменкова Светлана Николаевна',
+    phone: '(48122) 3-31-42',
+    sourceLabel: 'Historical orphanage web directory — verify independently',
+    sourceUrl: 'https://sitebaby.narod.ru/DetDomaISozUcrezhdSmol.htm',
+    notes: 'Historical listing described this institution as serving children approximately ages 3–7. Verify dates, legal name changes, closure/reorganization history, and archival successor.'
+  },
+  {
+    regions: ['smolensk', 'smolensk oblast', 'смоленск', 'смоленская область'],
+    city: 'Smolensk Oblast',
+    name: 'Смоленское областное государственное бюджетное учреждение «Ново-Никольский детский дом-интернат»',
+    sourceLabel: 'Smolensk Oblast Ministry of Social Development',
+    sourceUrl: 'https://socrazvitie.admin-smolensk.ru/organizacii-socialnogo-obsluzhivaniya/detskie-uchrezhdeniya-sistemy-socialnoj-zaschity/smolenskoe-oblastnoe-gosudarstvennoe-byudzhetnoe-uchrezhdeni-8/',
+    notes: 'Current official regional listing with links to location, contact, leadership, staff, and organizational information. Verify distance and adoption-era role before treating it as a candidate.'
+  },
   {
     regions: ['saint petersburg', 'санкт-петербург'],
     city: 'Peterhof',
@@ -442,6 +495,15 @@ const normalizePlaceForGeocoding = (input) => {
   return HISTORICAL_PLACE_ALIASES.get(lower) || raw;
 };
 
+const matchingOfficialLeadsByText = (text) => {
+  const searchable = clean(text, 400).toLowerCase();
+  if (!searchable) return [];
+  return OFFICIAL_INSTITUTION_LEADS.filter((lead) =>
+    lead.regions.some((region) => searchable.includes(region) || region.includes(searchable)) ||
+    String(lead.city || '').toLowerCase().includes(searchable)
+  ).map(({ regions, ...lead }) => lead);
+};
+
 const matchingOfficialLeads = (geocode) => {
   const searchable = [
     geocode?.display_name,
@@ -454,6 +516,16 @@ const matchingOfficialLeads = (geocode) => {
   return OFFICIAL_INSTITUTION_LEADS.filter((lead) =>
     lead.regions.some((region) => searchable.includes(region))
   ).map(({ regions, ...lead }) => lead);
+};
+
+const fetchWithTimeout = async (resource, options = {}, timeoutMs = 6500) => {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort('timeout'), timeoutMs);
+  try {
+    return await fetch(resource, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
 };
 
 export class CaseStore extends DurableObject {
@@ -545,6 +617,29 @@ export default {
       return secureResponse(assetResponse, request);
     }
 
+    if (url.pathname === '/api/orphanage-leads') {
+      if (request.method !== 'GET') {
+        return json({ ok: false, error: 'Method not allowed.' }, 405, request);
+      }
+      const requestedPlace = clean(url.searchParams.get('place'), 160);
+      if (requestedPlace.length < 2) {
+        return json({ ok: false, error: 'Enter a city, town, settlement, or region to search.' }, 400, request);
+      }
+      const interpretedPlace = normalizePlaceForGeocoding(requestedPlace);
+      const leads = [
+        ...matchingOfficialLeadsByText(requestedPlace),
+        ...matchingOfficialLeadsByText(interpretedPlace)
+      ].filter((lead, index, all) => all.findIndex((candidate) =>
+        candidate.name === lead.name && candidate.sourceUrl === lead.sourceUrl
+      ) === index);
+      return json({
+        ok: true,
+        requestedPlace,
+        interpretedPlace,
+        officialLeads: leads
+      }, 200, request);
+    }
+
     if (url.pathname === '/api/orphanages') {
       if (request.method !== 'GET') {
         return json({ ok: false, error: 'Method not allowed.' }, 405, request);
@@ -562,6 +657,16 @@ export default {
       if (cached) return secureResponse(cached, request);
 
       const interpretedPlace = normalizePlaceForGeocoding(requestedPlace);
+      const immediateLeads = [
+        ...matchingOfficialLeadsByText(requestedPlace),
+        ...matchingOfficialLeadsByText(interpretedPlace)
+      ].filter((lead, index, all) => all.findIndex((candidate) =>
+        candidate.name === lead.name && candidate.sourceUrl === lead.sourceUrl
+      ) === index);
+      const knownCenter =
+        KNOWN_PLACE_CENTERS.get(requestedPlace.toLowerCase()) ||
+        KNOWN_PLACE_CENTERS.get(interpretedPlace.toLowerCase()) ||
+        null;
       const geocodeUrl = new URL('https://nominatim.openstreetmap.org/search');
       geocodeUrl.searchParams.set('format', 'jsonv2');
       geocodeUrl.searchParams.set('limit', '5');
@@ -570,20 +675,36 @@ export default {
       geocodeUrl.searchParams.set('accept-language', 'en,ru');
       geocodeUrl.searchParams.set('q', interpretedPlace + ', Russia');
 
-      let geocodes = [];
-      try {
-        const geocodeResponse = await fetch(geocodeUrl.toString(), {
-          headers: {
-            'user-agent': 'RussianAdopteesOrganization-OrphanageFinder/2.0 (+https://russianadoptees.com/contact)',
-            'referer': 'https://russianadoptees.com/orphanage-finder',
-            'accept': 'application/json'
+      let geocodes = knownCenter ? [knownCenter] : [];
+      if (!knownCenter) {
+        try {
+          const geocodeResponse = await fetchWithTimeout(geocodeUrl.toString(), {
+            headers: {
+              'user-agent': 'RussianAdopteesOrganization-OrphanageFinder/2.1 (+https://russianadoptees.com/contact)',
+              'referer': 'https://russianadoptees.com/orphanage-finder',
+              'accept': 'application/json'
+            }
+          }, 5500);
+          if (!geocodeResponse.ok) throw new Error('Geocoding service unavailable');
+          geocodes = await geocodeResponse.json();
+        } catch (error) {
+          console.error('Orphanage locator geocoding failed', error?.message);
+          if (immediateLeads.length) {
+            return json({
+              ok: true,
+              requestedPlace,
+              interpretedPlace,
+              radiusKm,
+              radiusMiles: Number((radiusKm * 0.621371).toFixed(0)),
+              location: { displayName: requestedPlace },
+              results: [],
+              officialLeads: immediateLeads,
+              liveMapUnavailable: true,
+              warning: 'RAO found curated research leads, but the live map/geocoding service did not respond in time.'
+            }, 200, request);
           }
-        });
-        if (!geocodeResponse.ok) throw new Error('Geocoding service unavailable');
-        geocodes = await geocodeResponse.json();
-      } catch (error) {
-        console.error('Orphanage locator geocoding failed', error?.message);
-        return json({ ok: false, error: 'The location service is temporarily unavailable. Please try again shortly.' }, 503, request);
+          return json({ ok: false, error: 'The live location service did not respond in time. Please try again.' }, 503, request);
+        }
       }
 
       const geocode = geocodes.find((item) => item?.lat && item?.lon) || null;
@@ -611,29 +732,22 @@ out center tags;`;
       ];
 
       let overpassData = null;
-      for (const endpoint of overpassEndpoints) {
-        try {
-          const response = await fetch(endpoint, {
+      try {
+        overpassData = await Promise.any(overpassEndpoints.map(async (endpoint) => {
+          const response = await fetchWithTimeout(endpoint, {
             method: 'POST',
             headers: {
               'content-type': 'application/x-www-form-urlencoded;charset=UTF-8',
-              'user-agent': 'RussianAdopteesOrganization-OrphanageFinder/2.0 (+https://russianadoptees.com/contact)'
+              'user-agent': 'RussianAdopteesOrganization-OrphanageFinder/2.1 (+https://russianadoptees.com/contact)'
             },
             body: new URLSearchParams({ data: overpassQuery }).toString()
-          });
-          if (!response.ok) continue;
-          overpassData = await response.json();
-          break;
-        } catch (error) {
-          console.error('Overpass endpoint failed', endpoint, error?.message);
-        }
-      }
-
-      if (!overpassData) {
-        return json({
-          ok: false,
-          error: 'The nearby-institution map service is temporarily busy. Your location was found; please try the search again in a moment.'
-        }, 503, request);
+          }, 6500);
+          if (!response.ok) throw new Error('Overpass HTTP ' + response.status);
+          return response.json();
+        }));
+      } catch (error) {
+        console.error('All Overpass endpoints failed or timed out', error?.message);
+        overpassData = { elements: [] };
       }
 
       const seen = new Set();
@@ -686,7 +800,16 @@ out center tags;`;
           address: geocode.address || {}
         },
         results,
-        officialLeads: matchingOfficialLeads(geocode),
+        officialLeads: [
+          ...immediateLeads,
+          ...matchingOfficialLeads(geocode)
+        ].filter((lead, index, all) => all.findIndex((candidate) =>
+          candidate.name === lead.name && candidate.sourceUrl === lead.sourceUrl
+        ) === index),
+        liveMapUnavailable: !Array.isArray(overpassData.elements) || overpassData.elements.length === 0,
+        warning: (!Array.isArray(overpassData.elements) || overpassData.elements.length === 0)
+          ? 'The live public-map service returned no usable nearby results in this request. RAO-curated web leads are still shown below.'
+          : '',
         attribution: 'Nearby-facility data © OpenStreetMap contributors. Public map results describe current or recently mapped facilities and must be independently verified for historical adoption research.'
       };
 
